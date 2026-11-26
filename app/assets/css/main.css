@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/* La disposition courante des éditeurs en ligne, réchauffée : fond tiède,
+   panneaux blancs qui flottent, une seule couleur vive (brique) pour ce qu'on
+   peut presser ou ce qui est sélectionné. La timeline garde ses couleurs. */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  /* Les titres des pages publiques prennent la police des timelines : la page parle comme ce qu'elle montre. */
+  --font-display: "Montserrat", "Segoe UI", Arial, sans-serif;
+  --color-ground: #f4efe8;
+  --color-paper: #ffffff;
+  --color-wash: #f8f4ef;
+  --color-line: #e8e1d8;
+  --color-line-strong: #d6cdc2;
+  --color-ink: #2b2622;
+  --color-muted: #6b625b;
+  --color-accent: #cf4329;
+  --color-accent-strong: #b93a23;
+  --color-alert: #b42318;
+  --shadow-float: 0 1px 2px rgb(43 38 34 / 0.06), 0 8px 24px -6px rgb(43 38 34 / 0.14);
+  --shadow-pop: 0 2px 4px rgb(43 38 34 / 0.08), 0 16px 40px -8px rgb(43 38 34 / 0.22);
+}
+
+:root {
+  color-scheme: light;
+  accent-color: var(--color-accent);
+  caret-color: var(--color-accent);
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+::selection { background: rgb(207 67 41 / 0.18); }
+::placeholder { color: var(--color-muted); opacity: 1; }
+body { background: var(--color-ground); color: var(--color-ink); }
+/* Un seul trait pour toutes les icônes. */
+svg.lucide { stroke-width: 1.75; }
+
+@layer components {
+  /* Boutons : neutre, principal (brique), icône seule. Mêmes hauteurs partout. */
+  .btn {
+    @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-line bg-paper px-3 text-[13px] font-medium text-ink transition-colors duration-150;
+    @apply hover:border-line-strong hover:bg-wash;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+    @apply disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-paper;
+  }
+  .btn-primary { @apply border-accent bg-accent text-white hover:border-accent-strong hover:bg-accent-strong; }
+  .btn-quiet { @apply border-transparent bg-transparent hover:border-transparent hover:bg-wash; }
+  .btn-icon { @apply size-9 rounded-lg border-transparent bg-transparent p-0 text-ink hover:border-transparent hover:bg-wash; }
+  .btn-danger { @apply h-auto self-start border-transparent bg-transparent px-0 text-alert hover:bg-transparent hover:underline; }
+
+  /* Ce qui flotte au-dessus du canevas. */
+  .float { @apply rounded-xl border border-line bg-paper shadow-(--shadow-float); }
+
+  /* Menus et aides en popover natif, placés par la page à côté de leur bouton. */
+  .menu {
+    @apply fixed m-0 min-w-56 rounded-xl border border-line bg-paper p-1.5 text-[13px] text-ink shadow-(--shadow-pop);
+  }
+  .menu-item {
+    @apply flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-wash focus-visible:bg-wash focus-visible:outline-none;
+  }
+  .menu-item svg { @apply shrink-0 text-muted; }
+
+  .panel-title { @apply text-xs font-semibold text-muted; }
+  .field { @apply flex flex-col gap-1.5 text-xs font-medium text-muted; }
+  .field input:not([type="checkbox"], [type="radio"], [type="color"]), .field select, .field textarea {
+    @apply w-full rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm font-normal text-ink transition-colors;
+    @apply hover:border-line-strong focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-accent/25;
+    @apply disabled:bg-wash disabled:text-muted;
+  }
+  .hint { @apply text-xs font-normal text-muted not-italic; }
+  .check { @apply flex items-center gap-2 text-sm text-ink; }
+  .check input { @apply size-4; }
+  .swatch { @apply cursor-pointer rounded-full p-0.5 ring-accent has-checked:ring-2 has-focus-visible:ring-2; }
+  .swatch > span:first-of-type { @apply block size-6 rounded-full border border-black/10; }
+
+  .dialog {
+    @apply m-auto w-[min(1080px,calc(100vw-32px))] rounded-2xl border border-line bg-paper p-6 text-ink shadow-(--shadow-pop);
+  }
+  .dialog::backdrop { background: rgb(43 38 34 / 0.4); }
+}

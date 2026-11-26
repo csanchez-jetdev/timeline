@@ -1,0 +1,25 @@
+/**
+ * Place un popover natif (`popover` + `popovertarget`) à côté du bouton qui
+ * l'ouvre, au moment où il s'ouvre : `@beforetoggle="place($event, 'right')"`.
+ * Le positionnement par ancre CSS n'est pas encore partout ; ceci suffit.
+ */
+export function place(e: Event, side: 'right' | 'left' | 'below-end' | 'above-end' = 'right') {
+  const pop = e.target as HTMLElement
+  if ((e as ToggleEvent).newState !== 'open') return
+  const anchor = document.querySelector<HTMLElement>(`[popovertarget="${pop.id}"]`)
+  if (!anchor) return
+  const a = anchor.getBoundingClientRect()
+  pop.style.visibility = 'hidden'
+  // Mesure après affichage : le popover n'a pas encore de taille avant le premier rendu.
+  requestAnimationFrame(() => {
+    const p = pop.getBoundingClientRect()
+    const gap = 8
+    let left = side === 'right' ? a.right + gap : side === 'left' ? a.left - p.width - gap : a.right - p.width
+    let top = side === 'right' || side === 'left' ? a.top : side === 'below-end' ? a.bottom + gap : a.top - p.height - gap
+    left = Math.max(gap, Math.min(left, innerWidth - p.width - gap))
+    top = Math.max(gap, Math.min(top, innerHeight - p.height - gap))
+    pop.style.left = `${left}px`
+    pop.style.top = `${top}px`
+    pop.style.visibility = ''
+  })
+}

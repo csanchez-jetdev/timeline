@@ -1,0 +1,22 @@
+{
+  "name": "timeline",
+  "type": "module",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "check": "node scripts/check.ts",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@lucide/vue": "1.80.0",
+    "@nuxt/fonts": "^1.2.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "nuxt": "^4.7.0",
+    "pptxgenjs": "^4.0.1",
+    "tailwindcss": "^4.3.5",
+    "vue": "^3.5.46"
+  }
+}
