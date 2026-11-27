@@ -10,7 +10,7 @@ export default defineNuxtConfig({
   // dans le navigateur : la timeline ne quitte jamais le poste, le lien la
   // porte dans son fragment.
   routeRules: { '/editeur': { ssr: false } },
-  nitro: { prerender: { routes: ['/', '/editeur', ...EXEMPLES.map(e => `/exemples/${e.slug}`)] } },
+  nitro: { prerender: { routes: ['/', '/editeur', '/nouveautes', ...EXEMPLES.map(e => `/exemples/${e.slug}`)] } },
   runtimeConfig: {
     public: {
       rybbitSiteId: '', // NUXT_PUBLIC_RYBBIT_SITE_ID

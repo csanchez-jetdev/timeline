@@ -140,7 +140,7 @@ Pour l'exemple « Refonte du portail client », le fragment `#t1=…` fait 866 c
 
 ```
 app/
-├── pages/                accueil, éditeur, pages d'exemple
+├── pages/                accueil, éditeur, pages d'exemple, nouveautés
 ├── components/           canevas, panneau de propriétés, export, aperçu de slide…
 ├── composables/
 │   └── useTimeline.ts    document, sélection, historique, brouillon
@@ -150,6 +150,7 @@ app/
     ├── styles.ts         les six styles, palettes et contrastes
     ├── svg.ts            rendu SVG de la scène
     ├── export.ts         export PNG et PowerPoint
+    ├── nouveautes.ts     le journal des nouveautés, une entrée par version
     ├── share.ts          encodage du lien de partage
     └── exemples.ts       les exemples des pages publiques
 scripts/check.ts          contrôles du modèle, de la mise en page et du lien
@@ -173,13 +174,26 @@ pnpm dev          # http://localhost:3000
 | `pnpm dev` | Serveur de développement. |
 | `pnpm generate` | Site statique dans `.output/public`. |
 | `pnpm preview` | Sert le build localement. |
-| `pnpm check` | Contrôles sans navigateur : modèle, contrastes de chaque style, mise en page, aller-retour du lien. |
+| `pnpm check` | Contrôles sans navigateur : modèle, contrastes de chaque style, mise en page, journal des nouveautés, aller-retour du lien. |
 
 ### Héberger votre instance
 
 Le contenu de `.output/public` se sert depuis n'importe quel hébergement statique.
 
 La mesure d'audience ([Rybbit](https://rybbit.com), sans cookie) reste désactivée tant qu'aucun identifiant de site n'est fourni au moment du `pnpm generate` (variables `NUXT_PUBLIC_RYBBIT_SITE_ID` et, pour une instance auto-hébergée, `NUXT_PUBLIC_RYBBIT_HOST`). Elle remonte le chemin de la page, des événements d'usage (l'action, des comptes de projets et de jalons, le style, le format d'export) et les erreurs JavaScript imprévues, jamais le contenu d'une timeline ni le fragment qui la porte.
+
+## Publier une version
+
+1. Ajoutez une entrée en tête de `app/utils/nouveautes.ts`. Elle dit ce qui change pour la personne qui utilise l'outil, sans parler du code, en trois rubriques facultatives : `nouveau`, `ameliore`, `corrige`. La page `/nouveautes` l'affiche.
+2. Reportez le numéro dans le champ `version` de `package.json`. `pnpm check` vérifie que les deux concordent.
+3. Une fois la version sur `main`, taguez-la et publiez la release GitHub avec le texte de l'entrée :
+
+   ```sh
+   git tag v0.2.0 && git push origin v0.2.0
+   gh release create v0.2.0 --title "Version 0.2.0" --notes-file notes.md
+   ```
+
+Les personnes qui suivent le dépôt sont prévenues de chaque release, et GitHub publie leur flux Atom (`/releases.atom`).
 
 ## Licence
 
