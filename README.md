@@ -36,7 +36,7 @@ Sans compte, sans installation, et sans serveur qui voie vos données.
 - **Une échelle qui s'adapte.** Au mois, ou au jour quand la période dure 62 jours ou moins, avec les week-ends masquables.
 - **Un repère « aujourd'hui »**, une légende, le titre dans l'image : chaque élément s'affiche ou se masque.
 - **Une alerte de lisibilité.** L'éditeur prévient quand un libellé passerait sous 7,5 pt sur la slide.
-- **Cinq exemples** à ouvrir dans l'éditeur : projet client, projet étudiant, roadmap produit, déménagement, congés d'équipe.
+- **Six exemples** à ouvrir dans l'éditeur : projet client, projet étudiant, roadmap produit, déménagement, congés d'équipe, vacances en famille.
 
 ## Captures
 

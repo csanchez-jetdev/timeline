@@ -2,7 +2,7 @@
  * Les exemples des pages publiques, un par public. Fictifs : aucune date
  * officielle, aucun nom réel. Chacun montre un style différent, sauf les congés
  * qui reprennent Cahier : ses barres et ses pointillés de semaine conviennent à
- * un planning de congés.
+ * un planning de congés. Les vacances reprennent Frise, ses flèches suivent le voyage.
  */
 import type { Timeline } from './timeline.ts'
 
@@ -313,6 +313,70 @@ export const EXEMPLES: Exemple[] = [
             { nom: '30/12 au 06/01', debut: '2026-12-30', fin: '2027-01-06', couleur: 'orange' },
           ],
           jalons: [],
+        },
+      ],
+    },
+  },
+  {
+    slug: 'vacances',
+    public: 'Familles',
+    titre: 'L\'été de toute la famille, jour par jour',
+    accroche: 'Les stages des enfants, le voyage et les dates limites des réservations sur une seule frise : vous voyez qui est où, et ce qu\'il reste à régler.',
+    conseils: [
+      { titre: 'Une ligne par personne', texte: 'Une phase par séjour, une couleur par lieu : stage, centre de loisirs, grands-parents. Les jours sans phase sont ceux qui restent à organiser. Le voyage a sa propre ligne, avec les hébergements en phases et les trajets en jalons ; les sorties ont la leur.' },
+      { titre: 'Les dates qui engagent', texte: 'Solde à verser, fin de l\'annulation gratuite : chaque date limite devient un jalon. Son détail garde l\'heure du train ou le numéro de réservation. Les types de jalon se renomment dans la légende, ici Sortie, Trajet et Date limite. Le repère « aujourd\'hui » montre ce qui vient ensuite.' },
+      { titre: 'Pendant les vacances', texte: 'Exportez une image PNG : elle reste lisible sur le téléphone, même sans réseau. Le lien s\'ouvre sans compte, mais c\'est une copie, et toute personne qui le reçoit voit tous les noms et toutes les dates.' },
+    ],
+    timeline: {
+      titre: 'Été 2027 en famille',
+      style: 'frise',
+      libelles: { atelier: 'Sortie', livraison: 'Trajet', gouvernance: 'Date limite' },
+      periode: { debut: '2027-07-03', fin: '2027-08-31' },
+      projets: [
+        {
+          nom: 'Léa',
+          phases: [
+            { nom: 'Stage de voile', debut: '2027-07-05', fin: '2027-07-16', couleur: 'violet' },
+            { nom: 'Grands-parents', debut: '2027-07-19', fin: '2027-07-30', couleur: 'vert_clair' },
+          ],
+          jalons: [],
+        },
+        {
+          nom: 'Tom',
+          phases: [
+            { nom: 'Centre de loisirs', debut: '2027-07-05', fin: '2027-07-16', couleur: 'vert' },
+            { nom: 'Grands-parents', debut: '2027-07-19', fin: '2027-07-30', couleur: 'vert_clair' },
+            { nom: 'Centre de loisirs', debut: '2027-08-23', fin: '2027-08-31', couleur: 'vert' },
+          ],
+          jalons: [],
+        },
+        {
+          nom: 'Voyage',
+          phases: [
+            { nom: 'Gîte à Quiberon', debut: '2027-07-31', fin: '2027-08-13', couleur: 'bleu' },
+            { nom: 'Camping à Crozon', debut: '2027-08-14', fin: '2027-08-20', couleur: 'orange' },
+          ],
+          jalons: [
+            { date: '2027-07-31', type: 'livraison', titre: 'Train pour Vannes', detail: 'Départ à 8 h 12, voiture 14' },
+            { date: '2027-08-21', type: 'livraison', titre: 'Train du retour' },
+          ],
+        },
+        {
+          nom: 'Sorties',
+          phases: [],
+          jalons: [
+            { date: '2027-08-04', type: 'atelier', titre: 'Belle-Île en bateau' },
+            { date: '2027-08-08', type: 'atelier', titre: 'Cours de surf' },
+            { date: '2027-08-17', type: 'atelier', titre: 'Pointe de Pen-Hir' },
+          ],
+        },
+        {
+          nom: 'Préparatifs',
+          phases: [{ nom: 'Valises', debut: '2027-07-27', fin: '2027-07-30', couleur: 'gris' }],
+          jalons: [
+            { date: '2027-07-09', type: 'gouvernance', titre: 'Solde du gîte' },
+            { date: '2027-07-16', type: 'gouvernance', titre: 'Fin de l\'annulation gratuite du camping' },
+          ],
         },
       ],
     },
