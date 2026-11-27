@@ -21,5 +21,19 @@ export function place(e: Event, side: 'right' | 'left' | 'below-end' | 'above-en
     pop.style.left = `${left}px`
     pop.style.top = `${top}px`
     pop.style.visibility = ''
+    // Un menu s'ouvre le focus sur sa première entrée ; Échap le ferme et rend le focus au bouton.
+    if (pop.role === 'menu') items(pop)[0]?.focus()
   })
+}
+
+const items = (menu: HTMLElement) => [...menu.querySelectorAll<HTMLElement>('[role^="menuitem"]:not(:disabled)')]
+
+/** Dans un menu (`@keydown="menuKeys"`) : flèches haut et bas, Début, Fin. */
+export function menuKeys(e: KeyboardEvent) {
+  const all = items(e.currentTarget as HTMLElement)
+  const i = all.indexOf(document.activeElement as HTMLElement)
+  const next = ({ ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: all.length - 1 } as Record<string, number>)[e.key]
+  if (next === undefined) return
+  e.preventDefault()
+  all[(next + all.length) % all.length]?.focus()
 }

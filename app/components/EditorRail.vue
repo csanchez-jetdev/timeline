@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Braces, CircleHelp, Download, FilePlus2, FolderOpen, LayoutList, Redo2, Save, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
-import { place } from '~/utils/popover'
+import { Braces, CircleHelp, FileDown, FilePlus2, FolderOpen, LayoutList, Redo2, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
+import { menuKeys, place } from '~/utils/popover'
 import { track } from '~/utils/track'
 
 /* Le rail d'outils : annuler, fichier, réglages, aide. Icônes seules, nommées pour les lecteurs d'écran. */
@@ -20,9 +20,6 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
       <Redo2 :size="18" :stroke-width="1.75" />
     </button>
     <span class="m-1 bg-line" :class="horizontal ? 'w-px self-stretch' : 'h-px'" aria-hidden="true" />
-    <button class="btn btn-icon" type="button" aria-label="Enregistrer le JSON" title="Enregistrer le fichier JSON" @click="emit('save')">
-      <Save :size="18" :stroke-width="1.75" />
-    </button>
     <button class="btn btn-icon" type="button" popovertarget="file-menu" aria-label="Fichier" title="Fichier">
       <FolderOpen :size="18" :stroke-width="1.75" />
     </button>
@@ -33,11 +30,11 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
       <CircleHelp :size="18" :stroke-width="1.75" />
     </button>
 
-    <div id="file-menu" popover class="menu" role="menu" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')">
+    <div id="file-menu" popover class="menu" role="menu" aria-label="Fichier" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')" @keydown="menuKeys">
       <NuxtLink to="/timelines" class="menu-item" role="menuitem"><LayoutList :size="16" /> Mes timelines</NuxtLink>
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); tl.newTimeline()"><FilePlus2 :size="16" /> Nouvelle timeline</button>
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('open')"><Upload :size="16" /> Ouvrir un fichier JSON…</button>
-      <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('save')"><Download :size="16" /> Enregistrer le JSON</button>
+      <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('save')"><FileDown :size="16" /> Télécharger le fichier JSON</button>
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('json')"><Braces :size="16" /> Modifier le JSON…</button>
     </div>
 

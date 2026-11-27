@@ -31,7 +31,9 @@ const preview = computed(() => {
 })
 const readability = computed(() => preview.value && slideReadability(preview.value))
 
-function open() {
+/** Ouvre la fenêtre, réglée sur `f` s'il est donné, sinon sur le dernier format choisi. */
+function open(f?: typeof format.value) {
+  if (f) format.value = f
   style.value = doc.value.style ?? 'tableau'
   error.value = ''
   isOpen.value = true
