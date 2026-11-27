@@ -35,18 +35,48 @@ function mark(k: TypeJalon) {
   return prim(markPrim(forme, 0, 0, 8.5, fill, stroke === '#ffffff' ? '#d6cdc2' : stroke))
 }
 
+/*
+ * Un popover « manual », fermé ici : un appui hors du menu, Échap, ou une entrée choisie.
+ * En « auto », le navigateur le fermait au relâchement du bouton quand le menu s'ouvre
+ * bouton enfoncé (clic droit sous macOS, Ctrl+clic, appui long) : le relâchement tombe
+ * hors du menu et compte comme un clic à l'extérieur.
+ */
+let back: HTMLElement | null = null
 async function open(t: MenuTarget, x: number, y: number) {
   target.value = t
   if (t.kind === 'element') selection.value = t.ref
+  if (!menu.value?.matches(':popover-open')) back = document.activeElement as HTMLElement | null
   await nextTick()
   placeAt(menu.value!, x, y)
+  addEventListener('pointerdown', outside, true)
+  addEventListener('keydown', escape, true)
   track('menu_contextuel', { element: t.kind === 'element' ? t.ref.kind : 'ligne' })
 }
 defineExpose({ open })
 
-// Fermer le menu rend le focus là où il était (comportement natif du popover).
-function act(action: string, fn: () => void) {
+/** Ferme le menu ; au clavier ou par une entrée, le focus revient où il était. */
+function close(refocus: boolean) {
   menu.value?.hidePopover()
+  if (refocus) back?.focus()
+}
+function outside(e: PointerEvent) {
+  if (!menu.value?.contains(e.target as Node)) close(false)
+}
+function escape(e: KeyboardEvent) {
+  if (e.key !== 'Escape') return
+  e.preventDefault()
+  e.stopPropagation()
+  close(true)
+}
+function closed(e: Event) {
+  if ((e as ToggleEvent).newState === 'open') return
+  removeEventListener('pointerdown', outside, true)
+  removeEventListener('keydown', escape, true)
+}
+onBeforeUnmount(() => close(false))
+
+function act(action: string, fn: () => void) {
+  close(true)
   fn()
   track('menu_contextuel_action', { action })
 }
@@ -64,7 +94,7 @@ function addJalon() {
 </script>
 
 <template>
-  <div ref="menu" popover class="menu" role="menu" :aria-label="item ? `Actions sur ${item.kind === 'projet' ? 'le projet' : item.kind === 'phase' ? 'la phase' : 'le jalon'}` : 'Actions sur la ligne'" @keydown="menuKeys">
+  <div ref="menu" popover="manual" class="menu" role="menu" :aria-label="item ? `Actions sur ${item.kind === 'projet' ? 'le projet' : item.kind === 'phase' ? 'la phase' : 'le jalon'}` : 'Actions sur la ligne'" @keydown="menuKeys" @toggle="closed" @contextmenu.prevent>
     <template v-if="item && projet">
       <button class="menu-item" type="button" role="menuitem" @click="rename"><Pencil :size="16" /> Renommer</button>
 

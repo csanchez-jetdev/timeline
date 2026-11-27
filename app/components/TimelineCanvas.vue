@@ -370,7 +370,7 @@ function context(e: MouseEvent, t: MenuTarget | null) {
   contextMenu.value?.open(t, e.clientX, e.clientY)
 }
 let press: { timer: ReturnType<typeof setTimeout>, x: number, y: number } | null = null
-let pressedAt = 0
+let pressedAt = -Infinity
 function pressStart(e: PointerEvent, t: MenuTarget | null) {
   if (e.pointerType !== 'touch' || !t) return
   const { clientX: x, clientY: y, pointerId } = e
