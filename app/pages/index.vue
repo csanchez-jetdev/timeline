@@ -15,10 +15,7 @@ const roadmap = EXEMPLES.find(e => e.slug === 'roadmap-produit')!
 const recent = ref<Entry[]>([])
 onMounted(() => { recent.value = tl.recent().slice(0, 3) })
 
-function create() {
-  tl.createNew()
-  navigateTo('/editeur')
-}
+const creator = ref<{ open: () => void }>()
 
 const GESTES = [
   { geste: 'Double-cliquez sur la ligne d\'un projet', effet: 'Un jalon apparaît à cette date. Donnez-lui un titre, un type, un détail.' },
@@ -41,7 +38,7 @@ const GESTES = [
           Des projets en lignes, des phases en flèches, des jalons datés. Vous modifiez directement sur le dessin, puis vous exportez en PowerPoint, Google Slides ou image.
         </p>
         <div class="mt-8 flex flex-wrap items-center gap-3">
-          <button class="btn btn-primary h-11 px-5 text-[15px]" type="button" @click="create">Créer une timeline</button>
+          <button class="btn btn-primary h-11 px-5 text-[15px]" type="button" @click="creator!.open()">Créer une timeline</button>
         </div>
         <div v-if="recent.length" class="mt-5 flex flex-wrap items-center gap-2" role="group" aria-labelledby="reprendre">
           <span id="reprendre" class="mr-1 text-sm text-muted">Reprendre</span>
@@ -97,5 +94,6 @@ const GESTES = [
       <NuxtLink to="/nouveautes" class="underline-offset-4 hover:text-ink hover:underline">Nouveautés</NuxtLink>
       <NuxtLink to="/editeur" class="underline-offset-4 hover:text-ink hover:underline">Ouvrir l'éditeur</NuxtLink>
     </footer>
+    <CreateDialog ref="creator" />
   </div>
 </template>

@@ -2,7 +2,7 @@ import { layout, type Measure, type ItemRef as Sel } from '~/utils/layout'
 import { decodeTimeline, HASH_PREFIX } from '~/utils/share'
 import { svgInner } from '~/utils/svg'
 import { shape, track } from '~/utils/track'
-import { EXEMPLE } from '~/utils/exemples'
+import { EXEMPLE, EXEMPLE_OUVERT } from '~/utils/exemples'
 import { create, docKey, type Entry, list, load, migrate, save } from '~/utils/store'
 import { bounds, endOfMonth, fromDay, normalizeTimeline, type Periode, type Style, type Timeline, toDay } from '~/utils/timeline'
 
@@ -134,13 +134,10 @@ function moveProjet(from: number, delta: number) {
   track('projet_deplace', { sens: delta < 0 ? 'haut' : 'bas' })
   selection.value = { kind: 'projet', projet: to, index: to }
 }
+/** Une timeline vide : un projet, six mois à partir du mois en cours. */
 function blank(): Timeline {
   const fin = endOfMonth(fromDay(toDay(`${today.slice(0, 7)}-01`) + 160))
   return { titre: 'Nouvelle timeline', periode: { debut: `${today.slice(0, 7)}-01`, fin }, projets: [{ nom: 'Projet 1', phases: [], jalons: [] }] }
-}
-function newTimeline() {
-  openNew(blank())
-  track('nouvelle_timeline')
 }
 
 // Mesure du texte : celle du canvas, avec les polices de la page. Les mises en
@@ -272,11 +269,10 @@ async function openHash() {
 // Une autre page de cet onglet (accueil, exemple) prépare la timeline ; l'éditeur l'ouvre à son montage.
 let incoming: { t: Timeline, text?: string } | null = null
 function openExample(t: Timeline) {
-  incoming = { t: structuredClone(t), text: 'Exemple ouvert : cette copie est à vous, modifiez-la librement.' }
+  incoming = { t: structuredClone(t), text: EXEMPLE_OUVERT }
 }
-function createNew() {
-  incoming = { t: blank() }
-  track('nouvelle_timeline')
+function createNew(t: Timeline, text?: string) {
+  incoming = { t, text }
 }
 /** À l'ouverture de l'éditeur : la timeline préparée par une autre page, s'il y en a une. */
 function openIncoming() {
@@ -312,7 +308,7 @@ export function useTimeline() {
   return {
     doc, selection, notice, brokenDraft, current, saved, created, takeFocus, frozenPeriod, zoom, replaced, canUndo, canRedo, fontsTick, slideLayout,
     measure, today, start, snapshot, change, beginTyping, typed, replace, undo, redo, selectedItem, clampDate, dayAfter,
-    addProjet, addJalon, pushPhase, removeSelected, moveProjet, newTimeline, openNew, openId, openHash, openIncoming, openExample, createNew, recent,
+    addProjet, addJalon, pushPhase, removeSelected, moveProjet, blank, openNew, openId, openHash, openIncoming, openExample, createNew, recent,
     loadFonts, styleThumb, thumb,
     period: () => frozenPeriod.value ?? bounds(doc.value),
   }

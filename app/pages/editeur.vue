@@ -161,6 +161,7 @@ const EXPORTS = [
 const closeMenu = () => document.getElementById('export-menu')?.hidePopover()
 const jsonDialog = ref<{ open: () => void }>()
 const tour = ref<{ start: () => void }>()
+const creator = ref<{ open: () => void }>()
 // Les boutons de zoom ; la molette et le pincement, trop bavards, ne remontent pas.
 function zoomClick(e: MouseEvent) {
   const b = (e.target as Element).closest('button')
@@ -258,6 +259,7 @@ function settings() {
           class="absolute"
           :class="wide ? 'top-3 left-3' : 'bottom-3 left-3'"
           :horizontal="!wide"
+          @create="creator!.open()"
           @open="fileInput!.click()"
           @save="saveFile"
           @json="jsonDialog!.open()"
@@ -313,5 +315,6 @@ function settings() {
     <input ref="fileInput" type="file" accept=".json,application/json" class="hidden" @change="openFile">
     <ExportDialog ref="exportDialog" />
     <JsonDialog ref="jsonDialog" />
+    <CreateDialog ref="creator" />
   </div>
 </template>

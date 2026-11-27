@@ -19,6 +19,9 @@ export interface Exemple {
   timeline: Timeline
 }
 
+/** L'avis à l'ouverture d'un exemple dans l'éditeur. */
+export const EXEMPLE_OUVERT = 'Exemple ouvert : cette copie est à vous, modifiez-la librement.'
+
 export const EXEMPLES: Exemple[] = [
   {
     slug: 'projet-client',
