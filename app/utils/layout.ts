@@ -18,7 +18,8 @@ export type Prim =
   | { t: 'line', x1: number, y1: number, x2: number, y2: number, stroke: string, width: number, dash?: string }
   | { t: 'rect', x: number, y: number, w: number, h: number, rx?: number, fill: string, stroke?: string, strokeWidth?: number, ref?: ItemRef }
   | { t: 'circle', cx: number, cy: number, r: number, fill: string, stroke?: string, strokeWidth?: number, ref?: ItemRef }
-  | { t: 'text', x: number, anchor: 'start' | 'middle' | 'end', family: string, lines: TextLine[], halo?: boolean, tip?: string, ref?: ItemRef }
+  /** `halo` : la couleur sous le texte, dont un trait l'entoure pour effacer ce qui passe derrière lui. */
+  | { t: 'text', x: number, anchor: 'start' | 'middle' | 'end', family: string, lines: TextLine[], halo?: string, tip?: string, ref?: ItemRef }
 
 export interface Row { top: number, bottom: number, bandTop: number, bandBottom: number }
 
@@ -288,7 +289,7 @@ export function layout(t: Timeline, opts: { measure: Measure, width?: number, st
   }
 
   const bars: Prim[] = [], stemLines: Prim[] = [], marks: Prim[] = [], texts: Prim[] = [], gridLines: Prim[] = []
-  const text = (x: number, y: number, s: string, o: { size: number, weight: number, color: string, family?: string, anchor?: Anchor, halo?: boolean, ref?: ItemRef }): Prim =>
+  const text = (x: number, y: number, s: string, o: { size: number, weight: number, color: string, family?: string, anchor?: Anchor, halo?: string, ref?: ItemRef }): Prim =>
     ({ t: 'text', x, anchor: o.anchor ?? 'start', family: o.family ?? fonts.text, halo: o.halo, ref: o.ref, lines: [{ y, text: s, weight: o.weight, size: o.size, color: o.color }] })
 
   // Colonne de gauche : « P1 - Portail client » en tableau, une pastille de code et le nom en frise.
@@ -314,11 +315,13 @@ export function layout(t: Timeline, opts: { measure: Measure, width?: number, st
 
   const warnings: string[] = []
   const rows: Row[] = []
+  // Le fond d'une ligne de projet : une sur deux est teintée dans la grille zébrée.
+  const rowGround = (pi: number) => (grid === 'zebre' && pi % 2 === 0 ? c.rule : background)
 
   // En-tête des mois : nom complet s'il tient, sinon abrégé ; l'année sur le premier mois et sur
   // chaque janvier quand la période change d'année.
   // Au jour, les mois passent au-dessus des numéros des jours.
-  if (grid === 'cases') texts.push(text(LEFT / 2, HEADER_H / 2 + 6, 'PROJETS', { size: 15, weight: 700, color: c.teal, family: fonts.display, anchor: 'middle' }))
+  if (grid === 'cases' || grid === 'zebre') texts.push(text(LEFT / 2, HEADER_H / 2 + 6, 'PROJETS', { size: 15, weight: 700, color: c.teal, family: fonts.display, anchor: 'middle' }))
   const multiYear = months[0]!.y !== months.at(-1)!.y
   months.forEach(({ y, m }, i) => {
     const start = `${y}-${pad(m)}-01`
@@ -343,6 +346,7 @@ export function layout(t: Timeline, opts: { measure: Measure, width?: number, st
     const bandTop = top + 8 + extent.above
     const bandBottom = bandTop + BAND_H, cy = bandTop + BAND_H / 2
     const diamonds = p.jalons.map(j => x(j.date))
+    const ground = rowGround(pi)
 
     bars.push({ t: 'line', x1: X0, y1: cy, x2: X1, y2: cy, stroke: c.stem, width: 1.5 })
     const phaseRanges = p.phases.map((f): [number, number] => [x(f.debut, 0), f.fin ? x(f.fin, 1) : X1])
@@ -352,8 +356,9 @@ export function layout(t: Timeline, opts: { measure: Measure, width?: number, st
       const tip = Math.min(14, (xe - xs) / 3)
       const ref: ItemRef = { projet: pi, kind: 'phase', index: fi }
       let start = xs
-      if (def.phase === 'barre') {
-        bars.push({ t: 'rect', x: xs, y: bandTop, w: xe - xs, h: BAND_H, rx: Math.min(BAND_H / 2, (xe - xs) / 2), fill: color, ref })
+      if (def.phase === 'barre' || def.phase === 'bloc') {
+        const rx = def.phase === 'barre' ? Math.min(BAND_H / 2, (xe - xs) / 2) : 0
+        bars.push({ t: 'rect', x: xs, y: bandTop, w: xe - xs, h: BAND_H, rx, fill: color, ref })
         start = xs + 4
       }
       else {
@@ -367,8 +372,8 @@ export function layout(t: Timeline, opts: { measure: Measure, width?: number, st
         warnings.push(`${name} : pas de place pour le nom de phase « ${f.nom} »`)
         return
       }
-      const fill = !spot.outside ? onColor(f.couleur) : contrast(color, background) >= 3 ? color : c.ink
-      texts.push(text(spot.at, cy + spot.size * 0.36, f.nom, { size: spot.size, weight: 700, color: fill, family: fonts.display, halo: spot.outside, ref }))
+      const fill = !spot.outside ? onColor(f.couleur) : contrast(color, ground) >= 3 ? color : c.ink
+      texts.push(text(spot.at, cy + spot.size * 0.36, f.nom, { size: spot.size, weight: 700, color: fill, family: fonts.display, halo: spot.outside ? ground : undefined, ref }))
     })
 
     p.jalons.forEach((j, ji) => marks.push(mark(x(j.date), cy, HALF, j.type, { projet: pi, kind: 'jalon', index: ji })))
@@ -385,7 +390,7 @@ export function layout(t: Timeline, opts: { measure: Measure, width?: number, st
         x: tx,
         anchor: s.anchor,
         family: fonts.text,
-        halo: true,
+        halo: ground,
         tip: g.tip,
         ref: { projet: pi, kind: 'jalon', index: g.jalons[0]!.index },
         lines: g.lines.map((l, i) => ({ y: blockTop + (i + 1) * LINE - 3.5, text: l.t, weight: l.w, size: l.s, color: l.w === 400 ? c.muted : c.ink })),
@@ -404,6 +409,15 @@ export function layout(t: Timeline, opts: { measure: Measure, width?: number, st
     if (daily) gridLines.push({ t: 'line', x1: X0, y1: MONTH_ROW, x2: W, y2: MONTH_ROW, stroke: c.grid, width: 1.5 })
     for (const gy of [HEADER_H, ...rows.map(r => r.bottom)]) gridLines.push({ t: 'line', x1: 0, y1: gy, x2: W, y2: gy, stroke: c.grid, width: 1.5 })
     gridLines.push({ t: 'rect', x: 0.75, y: 0.75, w: W - 1.5, h: top - 1.5, fill: 'none', stroke: c.grid, strokeWidth: 1.5 })
+  }
+  else if (grid === 'zebre') {
+    // Une ligne de projet sur deux teintée sur toute la largeur, un filet par mois (par semaine au
+    // jour), et les filets de la colonne des projets et de l'en-tête.
+    rows.forEach((r, i) => { if (rowGround(i) !== background) gridLines.push({ t: 'rect', x: 0, y: r.top, w: W, h: r.bottom - r.top, fill: rowGround(i) }) })
+    for (const gx of divisions) gridLines.push({ t: 'line', x1: gx, y1: divTop, x2: gx, y2: top, stroke: c.grid, width: 1 })
+    if (daily) gridLines.push({ t: 'line', x1: X0, y1: MONTH_ROW, x2: W, y2: MONTH_ROW, stroke: c.grid, width: 1 })
+    gridLines.push({ t: 'line', x1: X0, y1: 0, x2: X0, y2: top, stroke: c.grid, width: 1.5 })
+    gridLines.push({ t: 'line', x1: 0, y1: HEADER_H, x2: W, y2: HEADER_H, stroke: c.grid, width: 1.5 })
   }
   else if (grid === 'aucune') {
     // Un filet sous l'en-tête et une graduation entre les mois (les semaines au jour), rien d'autre.

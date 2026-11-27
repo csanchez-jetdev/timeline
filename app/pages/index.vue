@@ -29,7 +29,7 @@ function smoothly(change: () => void) {
   document.startViewTransition(async () => { change(); await nextTick() })
 }
 
-// L'usage choisi pilote le cadre du haut, les six styles, la slide et le lien.
+// L'usage choisi pilote le cadre du haut, les styles, la slide et le lien.
 const slug = ref(EXEMPLES[0]!.slug)
 const current = computed(() => EXEMPLES.find(e => e.slug === slug.value)!)
 function choose(s: string) {
@@ -303,10 +303,10 @@ const pill = 'relative flex h-9 shrink-0 cursor-pointer items-center rounded-lg 
         </div>
       </section>
 
-      <!-- Le même planning dans les six styles : un clic, et la timeline glisse vers le nouveau style. -->
+      <!-- Le même planning dans chaque style : un clic, et la timeline glisse vers le nouveau style. -->
       <section class="mx-auto max-w-6xl px-5 py-20 sm:px-8">
         <div class="rise">
-          <h2 class="font-display text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.1] font-bold tracking-[-0.02em]">Six styles pour le même planning</h2>
+          <h2 class="font-display text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.1] font-bold tracking-[-0.02em]">Huit styles pour le même planning</h2>
           <p class="mt-4 max-w-2xl leading-relaxed text-muted">
             Choisissez un style : « {{ current.timeline.titre }} » est redessiné, avec les mêmes dates et les mêmes noms. Dans l'éditeur, le changement se fait aussi en un clic.
           </p>
