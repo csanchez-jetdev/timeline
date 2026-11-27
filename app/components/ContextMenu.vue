@@ -8,6 +8,7 @@ export type MenuTarget = { kind: 'element', ref: ItemRef } | { kind: 'row', row:
 <script setup lang="ts">
 import { ArrowDown, ArrowUp, Check, Maximize, Pencil, Plus, Redo2, SlidersHorizontal, Trash2, Undo2 } from '@lucide/vue'
 import { markPrim } from '~/utils/layout'
+import { SHORTCUTS as K } from '~/utils/keys'
 import { menuKeys, placeAt } from '~/utils/popover'
 import { markStyle, STYLE_DEFS } from '~/utils/styles'
 import { prim } from '~/utils/svg'
@@ -103,7 +104,7 @@ const addProjet = () => act('projet', () => tl.addProjet())
 <template>
   <div ref="menu" popover="manual" class="menu" role="menu" :aria-label="label" @keydown="menuKeys" @toggle="closed" @contextmenu.prevent>
     <template v-if="item && projet">
-      <button class="menu-item" type="button" role="menuitem" @click="rename"><Pencil :size="16" /> Renommer</button>
+      <button class="menu-item" type="button" role="menuitem" :aria-keyshortcuts="K.renommer.aria" @click="rename"><Pencil :size="16" /> Renommer<kbd>{{ K.renommer.label }}</kbd></button>
 
       <template v-if="phase">
         <div class="mx-1 my-1.5 h-px bg-line" role="separator" />
@@ -141,12 +142,12 @@ const addProjet = () => act('projet', () => tl.addProjet())
       </template>
 
       <template v-else>
-        <button class="menu-item" type="button" role="menuitem" :disabled="item.projet === 0" @click="move(-1)"><ArrowUp :size="16" /> Monter</button>
-        <button class="menu-item" type="button" role="menuitem" :disabled="item.projet === doc.projets.length - 1" @click="move(1)"><ArrowDown :size="16" /> Descendre</button>
+        <button class="menu-item" type="button" role="menuitem" :disabled="item.projet === 0" :aria-keyshortcuts="K.monter.aria" @click="move(-1)"><ArrowUp :size="16" /> Monter<kbd>{{ K.monter.label }}</kbd></button>
+        <button class="menu-item" type="button" role="menuitem" :disabled="item.projet === doc.projets.length - 1" :aria-keyshortcuts="K.descendre.aria" @click="move(1)"><ArrowDown :size="16" /> Descendre<kbd>{{ K.descendre.label }}</kbd></button>
       </template>
 
       <div class="mx-1 my-1.5 h-px bg-line" role="separator" />
-      <button class="menu-item text-alert [&_svg]:text-alert!" type="button" role="menuitem" @click="remove"><Trash2 :size="16" /> Supprimer</button>
+      <button class="menu-item text-alert [&_svg]:text-alert!" type="button" role="menuitem" :aria-keyshortcuts="K.supprimer.aria" @click="remove"><Trash2 :size="16" /> Supprimer<kbd>{{ K.supprimer.label }}</kbd></button>
     </template>
 
     <button v-else-if="target?.kind === 'row'" class="menu-item" type="button" role="menuitem" @click="addJalon"><Plus :size="16" /> Ajouter un jalon ici</button>
@@ -154,8 +155,8 @@ const addProjet = () => act('projet', () => tl.addProjet())
     <template v-else>
       <button class="menu-item" type="button" role="menuitem" @click="addProjet"><Plus :size="16" /> Ajouter un projet</button>
       <div class="mx-1 my-1.5 h-px bg-line" role="separator" />
-      <button class="menu-item" type="button" role="menuitem" :disabled="!canUndo" @click="act('annuler', tl.undo)"><Undo2 :size="16" /> Annuler</button>
-      <button class="menu-item" type="button" role="menuitem" :disabled="!canRedo" @click="act('retablir', tl.redo)"><Redo2 :size="16" /> Rétablir</button>
+      <button class="menu-item" type="button" role="menuitem" :disabled="!canUndo" :aria-keyshortcuts="K.annuler.aria" @click="act('annuler', tl.undo)"><Undo2 :size="16" /> Annuler<kbd>{{ K.annuler.label }}</kbd></button>
+      <button class="menu-item" type="button" role="menuitem" :disabled="!canRedo" :aria-keyshortcuts="K.retablir.aria" @click="act('retablir', tl.redo)"><Redo2 :size="16" /> Rétablir<kbd>{{ K.retablir.label }}</kbd></button>
       <div class="mx-1 my-1.5 h-px bg-line" role="separator" />
       <button class="menu-item" type="button" role="menuitem" @click="act('ajuster', () => emit('fit'))"><Maximize :size="16" /> Ajuster la vue</button>
       <button class="menu-item" type="button" role="menuitem" @click="act('reglages', () => emit('settings'))"><SlidersHorizontal :size="16" /> Réglages de la timeline</button>

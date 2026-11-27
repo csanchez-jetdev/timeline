@@ -65,6 +65,8 @@ const MODES = [{ v: 'modifier', label: 'Modifier', icon: PenLine }, { v: 'apercu
 watch(mode, m => track('mode_change', { mode: m }))
 const panelOpen = ref(true)
 watch(selection, (s) => { if (s) panelOpen.value = true })
+// Une demande de focus sur un nom (renommer, nouvel élément) a besoin du panneau.
+watch(tl.created, () => { panelOpen.value = true })
 // Le panneau se masque depuis son coin haut droit, et se rouvre au même endroit ; le focus suit.
 const inspector = ref<{ focusClose: () => void }>()
 const reopenButton = ref<HTMLButtonElement>()
@@ -81,14 +83,23 @@ const inset = computed(() => wide.value
   ? { top: GAP, left: EDGE + RAIL + GAP, right: EDGE + (panelOpen.value ? PANEL : RAIL) + GAP, bottom: 64 }
   : { top: EDGE + 40 + EDGE, left: EDGE, right: EDGE, bottom: EDGE + RAIL + EDGE })
 
+// Les raccourcis affichés dans les menus et l'aide viennent de utils/keys.ts.
 function keys(e: KeyboardEvent) {
-  const inField = !!(e.target as HTMLElement).closest('input, textarea, select')
+  const el = e.target as HTMLElement
+  const inField = !!el.closest('input, textarea, select')
   const mod = e.ctrlKey || e.metaKey
+  const s = selection.value
   if (inField || mode.value === 'apercu' || document.querySelector('dialog[open], :popover-open')) return
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) tl.redo(); else tl.undo(); track('raccourci', { touche: e.shiftKey ? 'retablir' : 'annuler' }) }
   else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); tl.redo(); track('raccourci', { touche: 'retablir' }) }
   else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); tl.removeSelected(); track('raccourci', { touche: 'supprimer' }) }
   else if (e.key === 'Escape') { selection.value = null; track('raccourci', { touche: 'echap' }) }
+  else if (s && (e.key === 'Enter' || e.key === 'F2') && !el.closest('button, a')) { e.preventDefault(); tl.created.value++; track('raccourci', { touche: 'renommer' }) }
+  else if (s?.kind === 'projet' && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+    e.preventDefault()
+    tl.moveProjet(s.projet, e.key === 'ArrowUp' ? -1 : 1)
+    track('raccourci', { touche: e.key === 'ArrowUp' ? 'monter' : 'descendre' })
+  }
   else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); canvas.value?.menuFromKeys(); track('raccourci', { touche: 'menu' }) }
 }
 
