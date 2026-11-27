@@ -227,119 +227,125 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
         <button class="btn btn-danger" type="button" @click="tl.removeSelected()"><Trash2 :size="15" /> Supprimer le projet</button>
       </template>
 
-      <!-- Timeline -->
+      <!-- Timeline : ce qu'elle raconte, puis son apparence. -->
       <template v-else>
-        <label class="field">Sous-titre <span class="hint">Sous le titre de la slide, et dans l'image si le titre y figure.</span>
-          <input name="sous_titre" :value="doc.sousTitre ?? ''" placeholder="Comité du 12 mars" @focus="tl.beginTyping" @input="tl.typed(() => { doc.sousTitre = value($event) || undefined })">
-        </label>
+        <section class="flex flex-col gap-4" aria-labelledby="reglages-parametres">
+          <h2 id="reglages-parametres" class="text-[13px] font-semibold">Paramètres</h2>
+          <label class="field">Sous-titre <span class="hint">Sous le titre de la slide, et dans l'image si le titre y figure.</span>
+            <input name="sous_titre" :value="doc.sousTitre ?? ''" placeholder="Comité du 12 mars" @focus="tl.beginTyping" @input="tl.typed(() => { doc.sousTitre = value($event) || undefined })">
+          </label>
 
-        <div class="field">
-          <span>Style</span>
-          <button popovertarget="style-menu" class="group flex flex-col gap-2 rounded-lg border border-line p-1.5 text-left text-sm font-medium text-ink hover:border-line-strong focus-visible:outline-2 focus-visible:outline-accent" type="button" :aria-label="`Style : ${STYLE_DEFS[style].label}, changer`">
-            <!-- eslint-disable-next-line vue/no-v-html : balisage produit par svgInner, textes échappés -->
-            <svg class="block w-full rounded-md border border-line" :viewBox="`0 0 ${THUMB_FRAME[0]} ${THUMB_FRAME[1]}`" preserveAspectRatio="xMinYMin slice" aria-hidden="true" v-html="tl.styleThumb(style)" />
-            <span class="flex items-center px-1 pb-0.5">
-              <span class="flex-1">{{ STYLE_DEFS[style].label }}</span>
-              <span class="flex items-center gap-1 text-xs text-muted group-hover:text-ink">Changer <ChevronDown :size="14" aria-hidden="true" /></span>
-            </span>
-          </button>
-          <div id="style-menu" popover class="menu w-[440px] p-3" @beforetoggle="place($event, 'left')" @toggle="styleOpen = ($event as ToggleEvent).newState === 'open'">
-            <StylePicker v-if="styleOpen" :model-value="style" @update:model-value="setStyle" />
-          </div>
-        </div>
-
-        <fieldset class="field">
-          <legend class="mb-1.5">Fond</legend>
-          <div class="flex flex-wrap items-center gap-1.5">
-            <label v-for="f in FONDS" :key="f.value" class="swatch" :title="f.label">
-              <input type="radio" name="fond" class="sr-only" :value="f.value" :checked="fond === f.value" @change="setFond(f.value)">
-              <span :style="{ background: f.value }" />
-              <span class="sr-only">{{ f.label }}</span>
+          <fieldset class="field">
+            <legend class="mb-1.5">Période</legend>
+            <label class="check">
+              <input type="checkbox" name="periode_auto" :checked="!doc.periode" @change="setAuto(($event.target as HTMLInputElement).checked)">
+              Automatique
             </label>
-            <label class="swatch relative" title="Autre couleur" :class="{ 'ring-2': customFond }">
-              <input type="color" name="fond_libre" class="absolute inset-0 size-full cursor-pointer opacity-0" :value="fond" aria-label="Autre couleur de fond" @change="setFond(value($event))">
-              <span class="grid place-items-center" :style="customFond ? { background: fond } : { background: 'conic-gradient(#cf4329, #e9b949, #3f7a52, #3d6e8c, #76578a, #cf4329)' }" />
-            </label>
-          </div>
-        </fieldset>
+            <div class="mt-2 grid grid-cols-2 gap-3">
+              <label class="field">Du
+                <input type="date" name="periode_debut" :value="shownPeriod.debut" :disabled="!doc.periode" :max="range?.min" @change="setPeriod('debut', value($event))">
+              </label>
+              <label class="field">Au
+                <input type="date" name="periode_fin" :value="shownPeriod.fin" :disabled="!doc.periode" :min="range?.max" @change="setPeriod('fin', value($event))">
+              </label>
+            </div>
+            <p v-if="range" class="hint mt-1.5">Elle contient toutes les dates, du {{ ddmmyyyy(range.min) }} au {{ ddmmyyyy(range.max) }}. Jusqu'à deux mois, l'axe montre chaque jour ; au-delà, chaque mois entier.</p>
+          </fieldset>
+        </section>
 
-        <fieldset class="field gap-2">
-          <legend class="mb-1.5">Dans l'image</legend>
-          <label class="check"><input type="checkbox" name="affichage.titre" :checked="show.titre" @change="setShow('titre', ($event.target as HTMLInputElement).checked)"> Titre et sous-titre en haut</label>
-          <label class="check"><input type="checkbox" name="affichage.legende" :checked="show.legende" @change="setShow('legende', ($event.target as HTMLInputElement).checked)"> Légende</label>
-          <label class="check"><input type="checkbox" name="affichage.dates" :checked="show.dates" @change="setShow('dates', ($event.target as HTMLInputElement).checked)"> Dates sous les jalons</label>
-          <label class="check"><input type="checkbox" name="affichage.aujourdhui" :checked="show.aujourdhui" @change="setShow('aujourdhui', ($event.target as HTMLInputElement).checked)"> Repère « aujourd'hui »</label>
-          <!-- Seulement sur l'échelle au jour : au mois, un week-end n'a pas de colonne. -->
-          <label v-if="dayScale(tl.period())" class="check"><input type="checkbox" name="affichage.weekends" :checked="show.weekends" @change="setShow('weekends', ($event.target as HTMLInputElement).checked)"> Week-ends</label>
-        </fieldset>
-
-        <fieldset class="field gap-2">
-          <legend class="mb-1.5">Légende <span class="hint">Renommez un type ; son symbole règle sa forme et sa couleur.</span></legend>
-          <div v-for="k in TYPES" :key="k" class="grid grid-cols-[28px_minmax(0,1fr)_minmax(0,1.25fr)] items-center gap-2">
-            <button
-              type="button"
-              class="grid size-7 place-items-center rounded-md hover:bg-wash focus-visible:outline-2 focus-visible:outline-accent"
-              :popovertarget="`marque-${k}`"
-              :aria-label="`Forme et couleur : ${typeLabel(doc, k)}`"
-              :title="`Forme et couleur : ${typeLabel(doc, k)}`"
-            >
-              <!-- eslint-disable-next-line vue/no-v-html : balisage produit par prim, sans texte -->
-              <svg viewBox="-12 -12 24 24" class="size-5" aria-hidden="true" v-html="icon(k)" />
+        <section class="-mx-4 flex flex-col gap-4 border-t border-line px-4 pt-4" aria-labelledby="reglages-apparence">
+          <h2 id="reglages-apparence" class="text-[13px] font-semibold">Apparence</h2>
+          <div class="field">
+            <span>Style</span>
+            <button popovertarget="style-menu" class="group flex flex-col gap-2 rounded-lg border border-line p-1.5 text-left text-sm font-medium text-ink hover:border-line-strong focus-visible:outline-2 focus-visible:outline-accent" type="button" :aria-label="`Style : ${STYLE_DEFS[style].label}, changer`">
+              <!-- eslint-disable-next-line vue/no-v-html : balisage produit par svgInner, textes échappés -->
+              <svg class="block w-full rounded-md border border-line" :viewBox="`0 0 ${THUMB_FRAME[0]} ${THUMB_FRAME[1]}`" preserveAspectRatio="xMinYMin slice" aria-hidden="true" v-html="tl.styleThumb(style)" />
+              <span class="flex items-center px-1 pb-0.5">
+                <span class="flex-1">{{ STYLE_DEFS[style].label }}</span>
+                <span class="flex items-center gap-1 text-xs text-muted group-hover:text-ink">Changer <ChevronDown :size="14" aria-hidden="true" /></span>
+              </span>
             </button>
-            <span class="text-xs leading-tight font-normal text-muted">{{ TYPE_LABELS[k] }}</span>
-            <input :name="`libelle.${k}`" :value="doc.libelles?.[k] ?? ''" placeholder="Renommer…" :aria-label="`Libellé pour ${TYPE_LABELS[k]}`" @focus="tl.beginTyping" @input="setLabel(k, value($event))">
-
-            <div :id="`marque-${k}`" popover class="menu w-[272px] p-3" @beforetoggle="place($event, 'left')">
-              <p class="text-[13px] font-semibold text-ink">{{ typeLabel(doc, k) }}</p>
-              <fieldset class="mt-2.5">
-                <legend class="mb-1.5 text-xs font-medium text-muted">Forme</legend>
-                <div class="flex gap-1">
-                  <label v-for="f in FORMES" :key="f" class="cursor-pointer" :title="FORME_LABELS[f]">
-                    <input type="radio" :name="`forme-${k}`" class="peer sr-only" :value="f" :checked="looks[k].forme === f" @change="setMarque(k, { forme: f })">
-                    <!-- eslint-disable-next-line vue/no-v-html : balisage produit par prim, sans texte -->
-                    <svg viewBox="-12 -12 24 24" class="block size-9 rounded-lg border border-line p-1.5 hover:border-line-strong peer-checked:border-accent peer-checked:ring-2 peer-checked:ring-accent/30 peer-focus-visible:ring-2 peer-focus-visible:ring-accent" aria-hidden="true" v-html="icon(k, f)" />
-                    <span class="sr-only">{{ FORME_LABELS[f] }}</span>
-                  </label>
-                </div>
-              </fieldset>
-              <fieldset class="mt-3">
-                <legend class="mb-1.5 text-xs font-medium text-muted">Couleur</legend>
-                <div class="flex flex-wrap gap-1">
-                  <label class="swatch" title="Couleur du style">
-                    <input type="radio" :name="`couleur-${k}`" class="sr-only" value="style" :checked="!doc.marques?.[k]?.couleur" @change="setMarque(k, { couleur: undefined })">
-                    <span :style="{ background: palette.marks[k].fill }" />
-                    <span class="sr-only">Couleur du style</span>
-                  </label>
-                  <span class="mx-0.5 w-px self-stretch bg-line" aria-hidden="true" />
-                  <label v-for="c in COULEURS" :key="c" class="swatch" :title="COULEUR_LABELS[c]">
-                    <input type="radio" :name="`couleur-${k}`" class="sr-only" :value="c" :checked="doc.marques?.[k]?.couleur === c" @change="setMarque(k, { couleur: c })">
-                    <span :style="{ background: palette.phases[c] }" />
-                    <span class="sr-only">{{ COULEUR_LABELS[c] }}</span>
-                  </label>
-                </div>
-              </fieldset>
-              <!-- Toujours là, pour que le menu ne grandisse pas sous le pointeur au premier choix. -->
-              <button class="btn btn-quiet mt-3 -ml-2 h-7 px-2 text-xs" type="button" :disabled="!doc.marques?.[k]" @click="setMarque(k, null)">Revenir au style</button>
+            <div id="style-menu" popover class="menu w-[440px] p-3" @beforetoggle="place($event, 'left')" @toggle="styleOpen = ($event as ToggleEvent).newState === 'open'">
+              <StylePicker v-if="styleOpen" :model-value="style" @update:model-value="setStyle" />
             </div>
           </div>
-        </fieldset>
 
-        <fieldset class="field">
-          <legend class="mb-1.5">Période</legend>
-          <label class="check">
-            <input type="checkbox" name="periode_auto" :checked="!doc.periode" @change="setAuto(($event.target as HTMLInputElement).checked)">
-            Automatique
-          </label>
-          <div class="mt-2 grid gap-3">
-            <label class="field">Du
-              <input type="date" name="periode_debut" :value="shownPeriod.debut" :disabled="!doc.periode" :max="range?.min" @change="setPeriod('debut', value($event))">
-            </label>
-            <label class="field">Au
-              <input type="date" name="periode_fin" :value="shownPeriod.fin" :disabled="!doc.periode" :min="range?.max" @change="setPeriod('fin', value($event))">
-            </label>
-          </div>
-          <p v-if="range" class="hint mt-1.5">Elle contient toutes les dates, du {{ ddmmyyyy(range.min) }} au {{ ddmmyyyy(range.max) }}. Jusqu'à deux mois, l'axe montre chaque jour ; au-delà, chaque mois entier.</p>
-        </fieldset>
+          <fieldset class="field">
+            <legend class="mb-1.5">Fond</legend>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <label v-for="f in FONDS" :key="f.value" class="swatch" :title="f.label">
+                <input type="radio" name="fond" class="sr-only" :value="f.value" :checked="fond === f.value" @change="setFond(f.value)">
+                <span :style="{ background: f.value }" />
+                <span class="sr-only">{{ f.label }}</span>
+              </label>
+              <label class="swatch relative" title="Autre couleur" :class="{ 'ring-2': customFond }">
+                <input type="color" name="fond_libre" class="absolute inset-0 size-full cursor-pointer opacity-0" :value="fond" aria-label="Autre couleur de fond" @change="setFond(value($event))">
+                <span class="grid place-items-center" :style="customFond ? { background: fond } : { background: 'conic-gradient(#cf4329, #e9b949, #3f7a52, #3d6e8c, #76578a, #cf4329)' }" />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field gap-2">
+            <legend class="mb-1.5">Dans l'image</legend>
+            <label class="check"><input type="checkbox" name="affichage.titre" :checked="show.titre" @change="setShow('titre', ($event.target as HTMLInputElement).checked)"> Titre et sous-titre en haut</label>
+            <label class="check"><input type="checkbox" name="affichage.legende" :checked="show.legende" @change="setShow('legende', ($event.target as HTMLInputElement).checked)"> Légende</label>
+            <label class="check"><input type="checkbox" name="affichage.dates" :checked="show.dates" @change="setShow('dates', ($event.target as HTMLInputElement).checked)"> Dates sous les jalons</label>
+            <label class="check"><input type="checkbox" name="affichage.aujourdhui" :checked="show.aujourdhui" @change="setShow('aujourdhui', ($event.target as HTMLInputElement).checked)"> Repère « aujourd'hui »</label>
+            <!-- Seulement sur l'échelle au jour : au mois, un week-end n'a pas de colonne. -->
+            <label v-if="dayScale(tl.period())" class="check"><input type="checkbox" name="affichage.weekends" :checked="show.weekends" @change="setShow('weekends', ($event.target as HTMLInputElement).checked)"> Week-ends</label>
+          </fieldset>
+
+          <fieldset class="field gap-2">
+            <legend class="mb-1.5">Types de jalon <span class="hint">Renommez un type ; son symbole règle sa forme et sa couleur.</span></legend>
+            <div v-for="k in TYPES" :key="k" class="grid grid-cols-[28px_minmax(0,1fr)_minmax(0,1.25fr)] items-center gap-2">
+              <button
+                type="button"
+                class="grid size-7 place-items-center rounded-md hover:bg-wash focus-visible:outline-2 focus-visible:outline-accent"
+                :popovertarget="`marque-${k}`"
+                :aria-label="`Forme et couleur : ${typeLabel(doc, k)}`"
+                :title="`Forme et couleur : ${typeLabel(doc, k)}`"
+              >
+                <!-- eslint-disable-next-line vue/no-v-html : balisage produit par prim, sans texte -->
+                <svg viewBox="-12 -12 24 24" class="size-5" aria-hidden="true" v-html="icon(k)" />
+              </button>
+              <span class="text-xs leading-tight font-normal text-muted">{{ TYPE_LABELS[k] }}</span>
+              <input :name="`libelle.${k}`" :value="doc.libelles?.[k] ?? ''" placeholder="Renommer…" :aria-label="`Libellé pour ${TYPE_LABELS[k]}`" @focus="tl.beginTyping" @input="setLabel(k, value($event))">
+
+              <div :id="`marque-${k}`" popover class="menu w-[272px] p-3" @beforetoggle="place($event, 'left')">
+                <p class="text-[13px] font-semibold text-ink">{{ typeLabel(doc, k) }}</p>
+                <fieldset class="mt-2.5">
+                  <legend class="mb-1.5 text-xs font-medium text-muted">Forme</legend>
+                  <div class="flex gap-1">
+                    <label v-for="f in FORMES" :key="f" class="cursor-pointer" :title="FORME_LABELS[f]">
+                      <input type="radio" :name="`forme-${k}`" class="peer sr-only" :value="f" :checked="looks[k].forme === f" @change="setMarque(k, { forme: f })">
+                      <!-- eslint-disable-next-line vue/no-v-html : balisage produit par prim, sans texte -->
+                      <svg viewBox="-12 -12 24 24" class="block size-9 rounded-lg border border-line p-1.5 hover:border-line-strong peer-checked:border-accent peer-checked:ring-2 peer-checked:ring-accent/30 peer-focus-visible:ring-2 peer-focus-visible:ring-accent" aria-hidden="true" v-html="icon(k, f)" />
+                      <span class="sr-only">{{ FORME_LABELS[f] }}</span>
+                    </label>
+                  </div>
+                </fieldset>
+                <fieldset class="mt-3">
+                  <legend class="mb-1.5 text-xs font-medium text-muted">Couleur</legend>
+                  <div class="flex flex-wrap gap-1">
+                    <label class="swatch" title="Couleur du style">
+                      <input type="radio" :name="`couleur-${k}`" class="sr-only" value="style" :checked="!doc.marques?.[k]?.couleur" @change="setMarque(k, { couleur: undefined })">
+                      <span :style="{ background: palette.marks[k].fill }" />
+                      <span class="sr-only">Couleur du style</span>
+                    </label>
+                    <span class="mx-0.5 w-px self-stretch bg-line" aria-hidden="true" />
+                    <label v-for="c in COULEURS" :key="c" class="swatch" :title="COULEUR_LABELS[c]">
+                      <input type="radio" :name="`couleur-${k}`" class="sr-only" :value="c" :checked="doc.marques?.[k]?.couleur === c" @change="setMarque(k, { couleur: c })">
+                      <span :style="{ background: palette.phases[c] }" />
+                      <span class="sr-only">{{ COULEUR_LABELS[c] }}</span>
+                    </label>
+                  </div>
+                </fieldset>
+                <!-- Toujours là, pour que le menu ne grandisse pas sous le pointeur au premier choix. -->
+                <button class="btn btn-quiet mt-3 -ml-2 h-7 px-2 text-xs" type="button" :disabled="!doc.marques?.[k]" @click="setMarque(k, null)">Revenir au style</button>
+              </div>
+            </div>
+          </fieldset>
+        </section>
       </template>
     </div>
   </aside>
