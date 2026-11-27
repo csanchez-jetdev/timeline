@@ -19,6 +19,7 @@ import { ddmmyyyy, fromDay, toDay } from '~/utils/timeline'
 // Les marges que laissent le rail, le panneau et la pastille qui flottent au-dessus :
 // la zone libre, où la page s'ajuste et se centre.
 const props = defineProps<{ inset: { top: number, right: number, bottom: number, left: number } }>()
+const emit = defineEmits<{ settings: [] }>()
 const tl = useTimeline()
 const { doc, selection, zoom, frozenPeriod } = tl
 
@@ -72,7 +73,7 @@ async function fit() {
   box.scrollTop = pad.value.y + (l.value.height * zoom.value) / 2 - (f.y + f.h / 2)
 }
 watch(tl.replaced, () => fit())
-defineExpose({ fit, zoomTo, zoomBy, menuOnSelection: () => menuOnSelection() })
+defineExpose({ fit, zoomTo, zoomBy, menuFromKeys: () => menuFromKeys() })
 
 const local = (e: { clientX: number, clientY: number }) => {
   const r = scroller.value!.getBoundingClientRect()
@@ -361,7 +362,8 @@ function dblOn(t: MenuTarget | null) {
 // --- Menu contextuel : clic droit, appui long, touche Menu ---
 
 const contextMenu = ref<{ open: (t: MenuTarget, x: number, y: number) => void }>()
-// Ailleurs que sur un élément ou une ligne, le menu du navigateur reste.
+const FOND: MenuTarget = { kind: 'fond' }
+// Sur le dessin, hors d'un élément ou d'une ligne, l'événement remonte au fond du canevas.
 function context(e: MouseEvent, t: MenuTarget | null) {
   // Un appui long vient d'ouvrir le menu : Android émet aussi contextmenu.
   if (performance.now() - pressedAt < 1000) return e.preventDefault()
@@ -369,6 +371,8 @@ function context(e: MouseEvent, t: MenuTarget | null) {
   e.preventDefault()
   contextMenu.value?.open(t, e.clientX, e.clientY)
 }
+// Fond, en-tête des dates, légende, marges : le menu de la timeline.
+const ground = (e: MouseEvent) => e.defaultPrevented || context(e, FOND)
 let press: { timer: ReturnType<typeof setTimeout>, x: number, y: number } | null = null
 let pressedAt = -Infinity
 function pressStart(e: PointerEvent, t: MenuTarget | null) {
@@ -389,10 +393,17 @@ function pressEnd(e?: PointerEvent) {
   clearTimeout(press.timer)
   press = null
 }
-/** La touche Menu ou Maj+F10 : le menu de l'élément sélectionné, sous son dessin. */
-function menuOnSelection() {
+/**
+ * La touche Menu ou Maj+F10 : le menu de l'élément sélectionné, sous son dessin ; sans
+ * sélection, celui de la timeline, en haut à gauche de sa partie visible.
+ */
+function menuFromKeys() {
   const s = selection.value
-  if (!s) return
+  if (!s) {
+    const r = svg.value!.getBoundingClientRect()
+    const box = scroller.value!.getBoundingClientRect()
+    return contextMenu.value?.open(FOND, Math.max(r.left, box.left + props.inset.left), Math.max(r.top, box.top + props.inset.top))
+  }
   const el = svg.value?.querySelector(`[data-kind="${s.kind}"][data-projet="${s.projet}"][data-index="${s.index}"]`)
   const r = (el ?? svg.value!).getBoundingClientRect()
   contextMenu.value?.open({ kind: 'element', ref: s }, r.left, r.bottom + 4)
@@ -411,6 +422,7 @@ function menuOnSelection() {
     @pointercancel="panEnd"
     @mousedown="$event.button === 1 && $event.preventDefault()"
     @wheel="wheel"
+    @contextmenu="ground"
     @scroll="scrollLeft = scroller!.scrollLeft"
   >
     <div ref="content" class="relative w-max" :style="{ padding: `${pad.y}px ${pad.x}px` }">
@@ -479,7 +491,7 @@ function menuOnSelection() {
     >
       {{ tip.text }}
     </div>
-    <ContextMenu ref="contextMenu" />
+    <ContextMenu ref="contextMenu" @fit="fit" @settings="emit('settings')" />
   </div>
 </template>
 

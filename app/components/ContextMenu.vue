@@ -1,12 +1,12 @@
 <script lang="ts">
 import type { ItemRef } from '~/utils/layout'
 
-/** Ce que vise le menu : un élément de la timeline, ou une partie vide d'une ligne à une date. */
-export type MenuTarget = { kind: 'element', ref: ItemRef } | { kind: 'row', row: number, date: string }
+/** Ce que vise le menu : un élément de la timeline, une partie vide d'une ligne à une date, ou le fond. */
+export type MenuTarget = { kind: 'element', ref: ItemRef } | { kind: 'row', row: number, date: string } | { kind: 'fond' }
 </script>
 
 <script setup lang="ts">
-import { ArrowDown, ArrowUp, Check, Pencil, Plus, Trash2 } from '@lucide/vue'
+import { ArrowDown, ArrowUp, Check, Maximize, Pencil, Plus, Redo2, SlidersHorizontal, Trash2, Undo2 } from '@lucide/vue'
 import { markPrim } from '~/utils/layout'
 import { menuKeys, placeAt } from '~/utils/popover'
 import { markStyle, STYLE_DEFS } from '~/utils/styles'
@@ -16,12 +16,13 @@ import { track } from '~/utils/track'
 
 /*
  * Le menu du clic droit (ou de l'appui long, ou de la touche Menu) : les gestes courants
- * sur l'élément visé, sans passer par le panneau. Chaque action prend un instantané :
- * Ctrl+Z l'annule.
+ * sur l'élément visé, sans passer par le panneau ; sur le fond, ceux de la timeline.
+ * Chaque action prend un instantané : Ctrl+Z l'annule.
  */
 
+const emit = defineEmits<{ fit: [], settings: [] }>()
 const tl = useTimeline()
-const { doc, selection } = tl
+const { doc, selection, canUndo, canRedo } = tl
 const menu = ref<HTMLElement>()
 const target = ref<MenuTarget | null>(null)
 
@@ -29,6 +30,11 @@ const item = computed(() => (target.value?.kind === 'element' ? target.value.ref
 const projet = computed(() => (item.value ? doc.value.projets[item.value.projet] : undefined))
 const phase = computed(() => (item.value?.kind === 'phase' ? projet.value?.phases[item.value.index] : undefined))
 const jalon = computed(() => (item.value?.kind === 'jalon' ? projet.value?.jalons[item.value.index] : undefined))
+const label = computed(() => {
+  if (target.value?.kind === 'fond') return 'Actions sur la timeline'
+  if (!item.value) return 'Actions sur la ligne'
+  return `Actions sur ${item.value.kind === 'projet' ? 'le projet' : item.value.kind === 'phase' ? 'la phase' : 'le jalon'}`
+})
 const palette = computed(() => STYLE_DEFS[doc.value.style ?? 'tableau'].palette)
 function mark(k: TypeJalon) {
   const { forme, fill, stroke } = markStyle(STYLE_DEFS[doc.value.style ?? 'tableau'], k, doc.value.marques?.[k])
@@ -50,7 +56,7 @@ async function open(t: MenuTarget, x: number, y: number) {
   placeAt(menu.value!, x, y)
   addEventListener('pointerdown', outside, true)
   addEventListener('keydown', escape, true)
-  track('menu_contextuel', { element: t.kind === 'element' ? t.ref.kind : 'ligne' })
+  track('menu_contextuel', { element: t.kind === 'element' ? t.ref.kind : t.kind === 'row' ? 'ligne' : 'fond' })
 }
 defineExpose({ open })
 
@@ -91,10 +97,11 @@ function addJalon() {
   act('jalon', () => tl.addJalon(t.row, t.date))
   track('jalon_ajoute', { depuis: 'menu' })
 }
+const addProjet = () => act('projet', () => tl.addProjet())
 </script>
 
 <template>
-  <div ref="menu" popover="manual" class="menu" role="menu" :aria-label="item ? `Actions sur ${item.kind === 'projet' ? 'le projet' : item.kind === 'phase' ? 'la phase' : 'le jalon'}` : 'Actions sur la ligne'" @keydown="menuKeys" @toggle="closed" @contextmenu.prevent>
+  <div ref="menu" popover="manual" class="menu" role="menu" :aria-label="label" @keydown="menuKeys" @toggle="closed" @contextmenu.prevent>
     <template v-if="item && projet">
       <button class="menu-item" type="button" role="menuitem" @click="rename"><Pencil :size="16" /> Renommer</button>
 
@@ -142,6 +149,16 @@ function addJalon() {
       <button class="menu-item text-alert [&_svg]:text-alert!" type="button" role="menuitem" @click="remove"><Trash2 :size="16" /> Supprimer</button>
     </template>
 
-    <button v-else class="menu-item" type="button" role="menuitem" @click="addJalon"><Plus :size="16" /> Ajouter un jalon ici</button>
+    <button v-else-if="target?.kind === 'row'" class="menu-item" type="button" role="menuitem" @click="addJalon"><Plus :size="16" /> Ajouter un jalon ici</button>
+
+    <template v-else>
+      <button class="menu-item" type="button" role="menuitem" @click="addProjet"><Plus :size="16" /> Ajouter un projet</button>
+      <div class="mx-1 my-1.5 h-px bg-line" role="separator" />
+      <button class="menu-item" type="button" role="menuitem" :disabled="!canUndo" @click="act('annuler', tl.undo)"><Undo2 :size="16" /> Annuler</button>
+      <button class="menu-item" type="button" role="menuitem" :disabled="!canRedo" @click="act('retablir', tl.redo)"><Redo2 :size="16" /> Rétablir</button>
+      <div class="mx-1 my-1.5 h-px bg-line" role="separator" />
+      <button class="menu-item" type="button" role="menuitem" @click="act('ajuster', () => emit('fit'))"><Maximize :size="16" /> Ajuster la vue</button>
+      <button class="menu-item" type="button" role="menuitem" @click="act('reglages', () => emit('settings'))"><SlidersHorizontal :size="16" /> Réglages de la timeline</button>
+    </template>
   </div>
 </template>
