@@ -3,7 +3,7 @@ import { Download, Image as ImageIcon, Presentation, X } from '@lucide/vue'
 import { exportPng, exportPptx, fileName } from '~/utils/export'
 import { layout, slideReadability } from '~/utils/layout'
 import { svgInner } from '~/utils/svg'
-import { shape, track } from '~/utils/track'
+import { shape, track, trackError } from '~/utils/track'
 import type { Style } from '~/utils/timeline'
 
 /* Format, style, aperçu exact de ce qui sera téléchargé. Rien ne se calcule tant que la boîte est fermée. */
@@ -52,6 +52,7 @@ async function run() {
   }
   catch (err) {
     track('export_erreur', { ...props, erreur: err instanceof Error ? err.name : 'inconnue' })
+    trackError(err, { format: format.value })
     error.value = `Export impossible : ${err instanceof Error ? err.message : String(err)}`
   }
   finally {
