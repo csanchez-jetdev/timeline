@@ -89,7 +89,7 @@ function keys(e: KeyboardEvent) {
   else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); tl.redo(); track('raccourci', { touche: 'retablir' }) }
   else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); tl.removeSelected(); track('raccourci', { touche: 'supprimer' }) }
   else if (e.key === 'Escape') { selection.value = null; track('raccourci', { touche: 'echap' }) }
-  else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); canvas.value?.menuOnSelection(); track('raccourci', { touche: 'menu' }) }
+  else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); canvas.value?.menuFromKeys(); track('raccourci', { touche: 'menu' }) }
 }
 
 const warnings = computed(() => {
@@ -139,7 +139,7 @@ async function share() {
   }
 }
 
-const canvas = ref<{ fit: () => void, zoomTo: (s: number) => void, zoomBy: (k: number) => void, menuOnSelection: () => void }>()
+const canvas = ref<{ fit: () => void, zoomTo: (s: number) => void, zoomBy: (k: number) => void, menuFromKeys: () => void }>()
 type Format = 'png' | 'pptx' | 'gslides'
 const exportDialog = ref<{ open: (f?: Format) => void }>()
 const EXPORTS = [
@@ -232,7 +232,7 @@ function settings() {
 
     <main class="relative min-h-0 flex-1">
       <!-- Le canevas reste monté pendant l'aperçu : on y revient avec le même zoom, au même endroit. -->
-      <TimelineCanvas ref="canvas" class="absolute inset-0" :inset="inset" :inert="mode === 'apercu' || undefined" />
+      <TimelineCanvas ref="canvas" class="absolute inset-0" :inset="inset" :inert="mode === 'apercu' || undefined" @settings="settings" />
       <EditorTour ref="tour" :wide="wide" :editing="mode === 'modifier'" />
 
       <SlidePreview v-if="mode === 'apercu'" class="absolute inset-0 bg-ground" />
