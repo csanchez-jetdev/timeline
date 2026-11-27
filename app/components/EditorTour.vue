@@ -14,7 +14,7 @@ defineProps<{ wide: boolean, editing: boolean }>()
 const STEPS = [
   { at: ['main svg.timeline'], titre: 'La timeline', texte: 'Cliquez sur un élément pour le modifier, double-cliquez dessus pour le renommer. Double-cliquez ailleurs sur une ligne pour poser un jalon, glissez sur une ligne vide pour dessiner une phase.' },
   { at: ['main .add-row'], titre: 'Ajouter un projet', texte: 'Chaque projet est une ligne. Ajoutez-en un ici, puis donnez-lui un nom.' },
-  { at: ['#proprietes', '[aria-label="Afficher les propriétés"]', '[aria-label="Réglages de la timeline"]'], titre: 'Le panneau Propriétés', texte: 'Ce que vous sélectionnez se modifie ici : nom, dates, couleur. Sans sélection, il règle la timeline : style, fond, légende.' },
+  { at: ['#proprietes', '[aria-label="Afficher les propriétés"]', '[aria-label="Réglages de la timeline"]'], titre: 'Le panneau Propriétés', texte: 'Ce que vous sélectionnez se modifie ici : nom, dates, couleur. Sans sélection, il règle la timeline : sous-titre, période, style, fond.' },
   { at: ['[role="radiogroup"][aria-label="Mode"]'], titre: 'Le mode Aperçu', texte: 'Il montre la slide telle qu\'elle sortira, au format 16:9.' },
   { at: ['[popovertarget="export-menu"]'], titre: 'Exporter', texte: 'Image PNG, PowerPoint ou Google Slides. Le même menu copie le lien de partage et télécharge le fichier JSON. Votre travail s\'enregistre seul dans ce navigateur.' },
 ]
