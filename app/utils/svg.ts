@@ -15,7 +15,7 @@ interface Options {
 }
 
 /** Une primitive en SVG ; sert aussi aux pictogrammes de jalon du panneau. */
-export function prim(p: Prim, o: Options = {}, background = ''): string {
+export function prim(p: Prim, o: Options = {}): string {
   let attrs = ''
   if (o.interactive && 'ref' in p && p.ref) {
     attrs = ` data-kind="${p.ref.kind}" data-projet="${p.ref.projet}" data-index="${p.ref.index}"`
@@ -31,8 +31,8 @@ export function prim(p: Prim, o: Options = {}, background = ''): string {
     case 'rect':
       return `<rect x="${n(p.x)}" y="${n(p.y)}" width="${n(p.w)}" height="${n(p.h)}"${p.rx ? ` rx="${p.rx}"` : ''} fill="${p.fill}"${p.stroke ? ` stroke="${p.stroke}" stroke-width="${p.strokeWidth}"` : ''}${attrs}/>`
     case 'text': {
-      // Le halo prend la couleur du fond : il efface ce qui passe derrière le texte sans le cerner.
-      const halo = p.halo ? ` stroke="${background}" stroke-width="4" stroke-linejoin="round" paint-order="stroke"` : ''
+      // Le halo prend la couleur sous le texte : il efface ce qui passe derrière lui sans le cerner.
+      const halo = p.halo ? ` stroke="${p.halo}" stroke-width="4" stroke-linejoin="round" paint-order="stroke"` : ''
       const tip = p.tip ? `<title>${esc(p.tip)}</title>` : ''
       const lines = p.lines.map(l => `<tspan x="${n(p.x)}" y="${n(l.y)}" font-weight="${l.weight}" font-size="${l.size}" fill="${l.color}">${esc(l.text)}</tspan>`).join('')
       return `<text x="${n(p.x)}" text-anchor="${p.anchor}" font-family="${esc(p.family)}"${halo}${attrs}>${tip}${lines}</text>`
@@ -59,7 +59,7 @@ export function svgInner(l: Layout, o: Options = {}): string {
   const row = o.selected?.kind === 'projet' ? l.rows[o.selected.projet] : undefined
   const wash = row ? `<rect x="0" y="${n(row.top)}" width="${l.width}" height="${n(row.bottom - row.top)}" fill="#cf4329" fill-opacity="0.07"/>` : ''
   const grips = o.interactive && o.selected?.kind === 'phase' ? handles(l, o.selected) : ''
-  return `<rect width="${l.width}" height="${n(l.height)}" fill="${l.background}"/>${wash}${l.scene.map(p => prim(p, o, l.background)).join('')}${grips}`
+  return `<rect width="${l.width}" height="${n(l.height)}" fill="${l.background}"/>${wash}${l.scene.map(p => prim(p, o)).join('')}${grips}`
 }
 
 /** Un document SVG autonome ; `head` accueille par exemple les polices intégrées. */

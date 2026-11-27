@@ -7,7 +7,7 @@
  */
 export const TYPES = ['atelier', 'sprint_review', 'livraison', 'gouvernance', 'retour'] as const
 export const COULEURS = ['bleu', 'orange', 'vert', 'violet', 'gris', 'vert_clair'] as const
-export const STYLES = ['tableau', 'frise', 'epure', 'chevrons', 'cahier', 'contraste'] as const
+export const STYLES = ['tableau', 'frise', 'epure', 'chevrons', 'cahier', 'contraste', 'gantt', 'roadmap'] as const
 export const FORMES = ['losange', 'rond', 'carre', 'triangle', 'etoile'] as const
 
 export type TypeJalon = (typeof TYPES)[number]

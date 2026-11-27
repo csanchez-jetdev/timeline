@@ -32,7 +32,7 @@ Sans compte, sans installation, et sans serveur qui voie vos données.
 - **Édition sur le rendu.** Un double-clic sur la ligne d'un projet pose un jalon à cette date. Un glisser sur une ligne vide dessine une phase. On tire un jalon, une phase ou ses bords pour changer les dates.
 - **Des libellés qui ne se chevauchent pas.** Les titres des jalons se rangent d'eux-mêmes en couloirs, au-dessus et au-dessous de la bande.
 - **Trois exports.** Une image PNG en haute définition, un PowerPoint aux formes natives modifiables (le détail des jalons part dans les notes de la slide), et le même fichier à importer dans Google Slides.
-- **Six styles**, de Tableau à Contraste, choisis sur des aperçus de votre propre timeline. Le fond est libre, la couleur et la forme de chaque type de jalon aussi, et les types se renomment (« Décision » devient « COPIL »).
+- **Huit styles**, du Tableau au Gantt et à la Roadmap, choisis sur des aperçus de votre propre timeline. Le fond est libre, la couleur et la forme de chaque type de jalon aussi, et les types se renomment (« Décision » devient « COPIL »).
 - **Une échelle qui s'adapte.** Au mois, ou au jour quand la période dure 62 jours ou moins, avec les week-ends masquables.
 - **Un repère « aujourd'hui »**, une légende, le titre dans l'image : chaque élément s'affiche ou se masque.
 - **Une alerte de lisibilité.** L'éditeur prévient quand un libellé passerait sous 7,5 pt sur la slide.
@@ -47,7 +47,7 @@ Sans compte, sans installation, et sans serveur qui voie vos données.
 <table>
   <tr>
     <td width="50%"><img src="docs/captures/apercu.webp" alt="Le mode Aperçu : la timeline posée sur une slide 16:9 avec son titre"></td>
-    <td width="50%"><img src="docs/captures/export.webp" alt="La fenêtre d'export : choix entre image PNG, PowerPoint et Google Slides, et vignettes des six styles"></td>
+    <td width="50%"><img src="docs/captures/export.webp" alt="La fenêtre d'export : choix entre image PNG, PowerPoint et Google Slides, et vignettes des styles"></td>
   </tr>
   <tr>
     <td align="center"><sub>Le mode Aperçu montre la slide telle que l'export la pose.</sub></td>
@@ -100,7 +100,7 @@ flowchart LR
 
 ### Le format de fichier
 
-Le JSON est le seul format accepté, et il fait l'aller-retour exact avec l'application. Les clés sont en français et le schéma est fermé : cinq types de jalon, six couleurs de phase, six styles, cinq formes de jalon. Un schéma fermé produit une slide correcte par défaut.
+Le JSON est le seul format accepté, et il fait l'aller-retour exact avec l'application. Les clés sont en français et le schéma est fermé : cinq types de jalon, six couleurs de phase, huit styles, cinq formes de jalon. Un schéma fermé produit une slide correcte par défaut.
 
 ```json
 {
@@ -147,7 +147,7 @@ app/
 └── utils/
     ├── timeline.ts       schéma fermé et validation
     ├── layout.ts         mise en page : timeline vers scène de primitives
-    ├── styles.ts         les six styles, palettes et contrastes
+    ├── styles.ts         les styles, palettes et contrastes
     ├── svg.ts            rendu SVG de la scène
     ├── export.ts         export PNG et PowerPoint
     ├── nouveautes.ts     le journal des nouveautés, une entrée par version

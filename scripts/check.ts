@@ -84,8 +84,13 @@ for (const [name, t] of cas) for (const style of STYLES) {
       const under = !p.halo && p.ref && (p.ref.kind === 'phase' || p.anchor === 'middle')
         ? l.scene.find(q => (q.t === 'poly' || q.t === 'rect') && sameRef(q.ref, p.ref))
         : undefined
-      const ground = under && 'fill' in under ? under.fill : l.background
-      for (const line of p.lines) assert.ok(contrast(line.color, ground) >= 3, `${where} : « ${line.text} » à ${contrast(line.color, ground).toFixed(2)}:1`)
+      for (const line of p.lines) {
+        // Sinon, la ligne de projet teintée sous le texte (grille zébrée), ou le fond.
+        const band = l.scene.find(q => q.t === 'rect' && !q.ref && q.fill !== 'none' && line.y > q.y && line.y < q.y + q.h)
+        const ground = under && 'fill' in under ? under.fill : band && 'fill' in band ? band.fill : l.background
+        assert.ok(contrast(line.color, ground) >= 3, `${where} : « ${line.text} » à ${contrast(line.color, ground).toFixed(2)}:1`)
+        if (p.halo) assert.equal(p.halo, ground, `${where} : halo de « ${line.text} » d'une autre couleur que le fond`)
+      }
     }
     // Une boîte par libellé de jalon, dans l'ordre de leurs traits.
     const labels = l.scene.flatMap((p) => {

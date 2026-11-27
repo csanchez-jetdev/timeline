@@ -18,9 +18,10 @@ export interface Palette {
 
 export interface StyleDef {
   label: string
-  /** Cases par mois, pointillés entre les mois, rien, ou un cahier (traits par semaine). */
-  grid: 'cases' | 'pointilles' | 'aucune' | 'cahier'
-  phase: 'fleche' | 'chevron' | 'barre'
+  /** Cases par mois, pointillés entre les mois, rien, un cahier (traits par semaine), ou des lignes de projet zébrées. */
+  grid: 'cases' | 'pointilles' | 'aucune' | 'cahier' | 'zebre'
+  /** Flèche, chevron, barre arrondie, ou bloc à angles droits. */
+  phase: 'fleche' | 'chevron' | 'barre' | 'bloc'
   mark: Forme
   /** Nom du projet dans une colonne, ou pastille de code au-dessus du nom. */
   projet: 'colonne' | 'pastille'
@@ -109,6 +110,26 @@ const NB: Palette = {
   },
 }
 
+// Teintes vives de roadmap produit ; l'orange est foncé juste assez pour porter du texte blanc.
+const VIVE: Palette = {
+  ink: '#172033',
+  teal: '#2b3a9e',
+  muted: '#5d6577',
+  stem: '#b8c0cc',
+  grid: '#dfe3e8',
+  rule: '#eef1f4',
+  paper: '#ffffff',
+  phases: { bleu: '#2f5bea', orange: '#d9530b', vert: '#0b8a5f', violet: '#7b3fe4', gris: '#a7b0bd', vert_clair: '#b5e04c' },
+  darkText: ['gris', 'vert_clair'],
+  marks: {
+    atelier: { fill: '#0b8a5f', stroke: '#ffffff' },
+    sprint_review: { fill: '#0b8a5f', stroke: '#ffffff' },
+    livraison: { fill: '#ffffff', stroke: '#172033' },
+    gouvernance: { fill: '#d9530b', stroke: '#ffffff' },
+    retour: { fill: '#f2b705', stroke: '#ffffff' },
+  },
+}
+
 const FONTS = { text: 'Carlito, Calibri, Arial, sans-serif', display: 'Montserrat, "Segoe UI", Arial, sans-serif' }
 
 /** Un style de plus : une entrée ici, et son nom à la fin de STYLES (timeline.ts). */
@@ -119,6 +140,8 @@ export const STYLE_DEFS: Record<Style, StyleDef> = {
   chevrons: { label: 'Chevrons', grid: 'pointilles', phase: 'chevron', mark: 'losange', projet: 'pastille', palette: CLASSIQUE, fonts: FONTS },
   cahier: { label: 'Cahier', grid: 'cahier', phase: 'barre', mark: 'rond', projet: 'pastille', palette: DOUCE, fonts: FONTS },
   contraste: { label: 'Contraste', grid: 'cases', phase: 'fleche', mark: 'losange', projet: 'colonne', palette: NB, fonts: FONTS },
+  gantt: { label: 'Gantt', grid: 'zebre', phase: 'bloc', mark: 'carre', projet: 'colonne', palette: CLASSIQUE, fonts: FONTS },
+  roadmap: { label: 'Roadmap', grid: 'aucune', phase: 'barre', mark: 'rond', projet: 'pastille', palette: VIVE, fonts: FONTS },
 }
 
 /**
