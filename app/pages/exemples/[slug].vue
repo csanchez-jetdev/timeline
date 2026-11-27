@@ -16,6 +16,7 @@ useSeoMeta({ title: `${e.titre} | Timeline`, description: e.accroche })
 const insecable = (s: string) => s.replace(/ (?=[:;!?»])|(?<=«) /g, ' ')
 
 const tl = useTimeline()
+const creator = ref<{ open: () => void }>()
 function open() {
   tl.openExample(e.timeline)
   track('exemple_ouvert', { exemple: e.slug })
@@ -27,7 +28,7 @@ function open() {
   <div class="min-h-dvh bg-ground font-sans text-ink antialiased">
     <SiteHeader />
 
-    <main class="pb-16">
+    <main>
       <div class="mx-auto max-w-6xl px-5 pt-6 sm:px-8">
         <nav aria-label="Fil d'Ariane" class="flex items-center gap-1 text-sm text-muted">
           <NuxtLink to="/#exemples" class="hover:text-ink hover:underline underline-offset-4">Exemples</NuxtLink>
@@ -67,6 +68,18 @@ function open() {
           <ExempleCard v-for="x in autres" :key="x.slug" :exemple="x" />
         </div>
       </section>
+
+      <!-- La fin : partir de cet exemple, ou d'une timeline vide. -->
+      <section class="mt-16 border-t border-line bg-paper">
+        <div class="mx-auto max-w-6xl px-5 py-16 sm:px-8">
+          <h2 class="font-display text-2xl font-bold tracking-[-0.01em]">Partez de cet exemple ou d'une page vide</h2>
+          <div class="mt-6 flex flex-wrap gap-2">
+            <button class="btn btn-primary h-11 px-5 text-[15px]" type="button" @click="open">Ouvrir cet exemple dans l'éditeur</button>
+            <button class="btn h-11 px-5 text-[15px]" type="button" @click="creator!.open()">Créer une timeline</button>
+          </div>
+        </div>
+      </section>
     </main>
+    <CreateDialog ref="creator" />
   </div>
 </template>

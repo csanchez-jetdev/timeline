@@ -10,6 +10,8 @@ export interface Exemple {
   slug: string
   /** Pour qui, en quelques mots. */
   public: string
+  /** L'usage en deux ou trois mots, pour le sélecteur de l'accueil. */
+  usage: string
   /** Titre de la page d'exemple. */
   titre: string
   /** Une ou deux phrases sous le titre. */
@@ -26,6 +28,7 @@ export const EXEMPLES: Exemple[] = [
   {
     slug: 'projet-client',
     public: 'Chefs de projet et consultants',
+    usage: 'Comité de pilotage',
     titre: 'Le planning de votre prochain comité de pilotage',
     accroche: 'Phases, démos, mises en production : tout le projet sur une slide, prête à projeter.',
     conseils: [
@@ -101,6 +104,7 @@ export const EXEMPLES: Exemple[] = [
   {
     slug: 'projet-etudiant',
     public: 'Élèves, étudiants et enseignants',
+    usage: 'Projet étudiant',
     titre: 'Un projet de groupe, du sujet à la soutenance',
     accroche: 'Les rendus, les revues avec le tuteur et la soutenance sur une seule frise, que tout le groupe peut ouvrir.',
     conseils: [
@@ -165,6 +169,7 @@ export const EXEMPLES: Exemple[] = [
   {
     slug: 'roadmap-produit',
     public: 'Équipes produit',
+    usage: 'Roadmap produit',
     titre: 'Une roadmap qui tient sur une slide',
     accroche: 'Chaque chantier sur sa ligne, de la recherche à la mise en ligne, pour la revue de trimestre.',
     conseils: [
@@ -227,6 +232,7 @@ export const EXEMPLES: Exemple[] = [
   {
     slug: 'demenagement',
     public: 'Tout le monde',
+    usage: 'Déménagement',
     titre: 'Un déménagement sans rien oublier',
     accroche: 'Le bail, le préavis, les cartons et les travaux, chacun sur sa ligne, avec les dates qui comptent.',
     conseils: [
@@ -290,6 +296,7 @@ export const EXEMPLES: Exemple[] = [
   {
     slug: 'conges-equipe',
     public: 'Managers et équipes',
+    usage: 'Congés d\'équipe',
     titre: 'Les congés de l\'équipe pendant les fêtes',
     accroche: 'Qui part quand, jour par jour : les journées où l\'équipe est réduite se voient d\'un coup d\'œil.',
     conseils: [
@@ -320,6 +327,7 @@ export const EXEMPLES: Exemple[] = [
   {
     slug: 'vacances',
     public: 'Familles',
+    usage: 'Vacances en famille',
     titre: 'L\'été de toute la famille, jour par jour',
     accroche: 'Les stages des enfants, le voyage et les dates limites des réservations sur une seule frise : vous voyez qui est où, et ce qu\'il reste à régler.',
     conseils: [
