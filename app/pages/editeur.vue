@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { CircleAlert, Download, Eye, Info, Link2, Maximize, Minus, PanelRight, PenLine, Plus, TriangleAlert, X } from '@lucide/vue'
 import { ZOOM } from '~/composables/useTimeline'
-import { download, fileName } from '~/utils/export'
+import { EXEMPLE } from '~/utils/exemples'
+import { downloadJson } from '~/utils/export'
 import { slideReadability } from '~/utils/layout'
 import { place } from '~/utils/popover'
 import { encodeTimeline, HASH_PREFIX } from '~/utils/share'
@@ -19,20 +20,44 @@ const message = (err: unknown) => (err instanceof Error ? err.message : String(e
 const wide = ref(true)
 let media: MediaQueryList | undefined
 const onMedia = () => { wide.value = media!.matches }
-onMounted(() => {
+onMounted(async () => {
   tl.start()
   window.addEventListener('keydown', keys)
+  window.addEventListener('hashchange', onHash)
   media = matchMedia('(min-width: 768px)')
   onMedia()
-  track('editeur_ouvert', shape(doc.value))
   // Sur petit écran, le panneau couvrirait la timeline : il s'ouvre à la sélection.
   panelOpen.value = wide.value
   media.addEventListener('change', onMedia)
+  await openTimeline()
+  syncAddress()
+  track('editeur_ouvert', shape(doc.value))
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', keys)
+  window.removeEventListener('hashchange', onHash)
   media?.removeEventListener('change', onMedia)
 })
+
+// La timeline à ouvrir : un lien de partage, sinon celle préparée par l'accueil ou un
+// exemple, sinon celle de l'adresse ou déjà ouverte, sinon la plus récente, sinon l'exemple.
+const route = useRoute()
+const router = useRouter()
+async function openTimeline() {
+  if (await tl.openHash() || tl.openIncoming()) return
+  const id = typeof route.query.id === 'string' ? route.query.id : tl.current.value
+  if (id && (id === tl.current.value || tl.openId(id))) return
+  if (id) notice.value = { tone: 'info', text: 'Cette timeline n\'est pas enregistrée dans ce navigateur. Voici la plus récente.' }
+  const latest = tl.recent()[0]
+  if (!latest || !tl.openId(latest.id)) tl.openNew(structuredClone(EXEMPLE))
+}
+// L'adresse porte l'identifiant, jamais le lien qui a servi : un rechargement rouvre la même timeline.
+const syncAddress = () => router.replace({ query: tl.current.value ? { id: tl.current.value } : {}, hash: '' })
+watch(tl.current, syncAddress)
+async function onHash() {
+  await tl.openHash()
+  syncAddress()
+}
 
 // Modifier : la timeline en plein cadre avec ses outils. Aperçu : la slide telle qu'elle sortira.
 const mode = ref<'modifier' | 'apercu'>('modifier')
@@ -75,9 +100,8 @@ async function openFile(e: Event) {
   input.value = ''
   if (!file) return
   try {
-    tl.replace(normalizeTimeline(JSON.parse(await file.text())))
+    tl.openNew(normalizeTimeline(JSON.parse(await file.text())), `${file.name} ouvert : il s'ajoute à vos timelines.`)
     track('fichier_ouvert', { resultat: 'ok', ...shape(doc.value) })
-    notice.value = { tone: 'info', text: `${file.name} ouvert. Annuler (Ctrl+Z) rend la timeline d'avant.` }
   }
   catch (err) {
     track('fichier_ouvert', { resultat: err instanceof SyntaxError ? 'json_invalide' : 'schema_invalide' })
@@ -86,7 +110,7 @@ async function openFile(e: Event) {
 }
 function saveFile() {
   track('fichier_enregistre', shape(doc.value))
-  download(new Blob([`${JSON.stringify(doc.value, null, 2)}\n`], { type: 'application/json' }), `${fileName(doc.value.titre)}.json`)
+  downloadJson(doc.value)
 }
 
 async function share() {

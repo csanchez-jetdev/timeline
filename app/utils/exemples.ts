@@ -229,7 +229,7 @@ export const EXEMPLES: Exemple[] = [
     conseils: [
       { titre: 'Les dates qui ne bougent pas', texte: 'Commencez par les dates fixées par d\'autres : fin du préavis, remise des clés, jour J. Chacune devient un jalon. Son détail peut garder l\'heure du rendez-vous ou le numéro à appeler.' },
       { titre: 'Puis le reste', texte: 'Dessinez ensuite les phases entre ces dates : recherche, cartons, travaux. Quand un rendez-vous change, faites glisser son jalon à la nouvelle date.' },
-      { titre: 'Garder le fil', texte: 'Le brouillon reste dans ce navigateur, sur cet appareil : vous reprenez où vous en étiez. Pour le transmettre aux personnes qui déménagent avec vous, envoyez le lien. Pour l\'avoir sous les yeux, exportez une image.' },
+      { titre: 'Garder le fil', texte: 'La timeline reste dans ce navigateur, sur cet appareil : vous la retrouvez dans Mes timelines. Pour la transmettre aux personnes qui déménagent avec vous, envoyez le lien. Pour l\'avoir sous les yeux, exportez une image.' },
     ],
     timeline: {
       titre: 'Déménagement à Lyon',

@@ -61,7 +61,7 @@ Tout tourne dans le navigateur : la mise en page, l'édition, les exports et l'e
 
 | Pour… | Ce que fait l'outil |
 |---|---|
-| Ne rien perdre entre deux visites | Un brouillon reste dans le `localStorage` du navigateur. |
+| Retrouver ses timelines | Chaque timeline reste dans le `localStorage` du navigateur, sur cet appareil, et la page Mes timelines les liste. Effacer les données du site les efface. |
 | Garder une version | Un fichier JSON, qui se rouvre, se versionne et se compare. |
 | Transmettre | Un lien qui contient toute la timeline, compressée dans le fragment (`#…`) de l'adresse. Le navigateur n'envoie jamais le fragment au serveur ([RFC 3986, §3.5](https://www.rfc-editor.org/rfc/rfc3986#section-3.5)). Toute personne qui reçoit le lien peut donc lire la timeline. |
 
@@ -140,10 +140,10 @@ Pour l'exemple « Refonte du portail client », le fragment `#t1=…` fait 866 c
 
 ```
 app/
-├── pages/                accueil, éditeur, pages d'exemple
+├── pages/                accueil, éditeur, mes timelines, pages d'exemple
 ├── components/           canevas, panneau de propriétés, export, aperçu de slide…
 ├── composables/
-│   └── useTimeline.ts    document, sélection, historique, brouillon
+│   └── useTimeline.ts    document, sélection, historique, enregistrement
 └── utils/
     ├── timeline.ts       schéma fermé et validation
     ├── layout.ts         mise en page : timeline vers scène de primitives
@@ -151,8 +151,9 @@ app/
     ├── svg.ts            rendu SVG de la scène
     ├── export.ts         export PNG et PowerPoint
     ├── share.ts          encodage du lien de partage
+    ├── store.ts          les timelines gardées dans le navigateur
     └── exemples.ts       les exemples des pages publiques
-scripts/check.ts          contrôles du modèle, de la mise en page et du lien
+scripts/check.ts          contrôles du modèle, de la mise en page, du lien et du stockage
 ```
 
 Les modules de `app/utils` s'importent entre eux par chemin relatif, sans auto-import : ils s'exécutent aussi hors de Nuxt, ce qui permet à `scripts/check.ts` de tourner sans navigateur.

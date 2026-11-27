@@ -17,6 +17,10 @@ export function download(blob: Blob, name: string) {
 export const fileName = (titre: string) =>
   titre.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'timeline'
 
+/** Le fichier JSON d'une timeline, à rouvrir ou à garder ailleurs. */
+export const downloadJson = (t: Timeline) =>
+  download(new Blob([`${JSON.stringify(t, null, 2)}\n`], { type: 'application/json' }), `${fileName(t.titre)}.json`)
+
 const toDataUrl = async (url: string) => {
   const blob = await (await fetch(url)).blob()
   return new Promise<string>((resolve, reject) => {

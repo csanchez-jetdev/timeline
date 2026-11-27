@@ -6,6 +6,7 @@
     </NuxtLink>
     <nav class="ml-auto flex items-center gap-1" aria-label="Site">
       <NuxtLink to="/#exemples" class="btn btn-quiet max-sm:hidden">Exemples</NuxtLink>
+      <NuxtLink to="/timelines" class="btn btn-quiet max-sm:hidden">Mes timelines</NuxtLink>
       <NuxtLink to="/editeur" class="btn">Ouvrir l'éditeur</NuxtLink>
     </nav>
   </header>

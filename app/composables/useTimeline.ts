@@ -3,21 +3,25 @@ import { decodeTimeline, HASH_PREFIX } from '~/utils/share'
 import { svgInner } from '~/utils/svg'
 import { shape, track } from '~/utils/track'
 import { EXEMPLE } from '~/utils/exemples'
+import { create, docKey, type Entry, list, load, migrate, save } from '~/utils/store'
 import { bounds, endOfMonth, fromDay, normalizeTimeline, type Periode, type Style, type Timeline, toDay } from '~/utils/timeline'
 
 /*
  * L'état de l'éditeur, partagé par tous les composants : le document, la
- * sélection, l'historique, le brouillon. Un seul éditeur par onglet, donc un
+ * sélection, l'historique, l'enregistrement. Un seul éditeur par onglet, donc un
  * état de module suffit.
  */
-const DRAFT_KEY = 'timeline:brouillon'
 const HISTORY = 100
 
 const doc = ref<Timeline>(structuredClone(EXEMPLE))
 const selection = ref<Sel | null>(null)
 const notice = ref<{ text: string, tone: 'info' | 'error' } | null>(null)
-/** Le texte d'un brouillon qui n'a pas pu se relire, proposé dans le panneau JSON. */
+/** Le texte d'une timeline enregistrée qui n'a pas pu se relire, proposé dans le panneau JSON. */
 const brokenDraft = ref<string | null>(null)
+/** L'identifiant de la timeline ouverte dans ce navigateur ; null si elle n'a pas pu s'enregistrer. */
+const current = ref<string | null>(null)
+/** L'état de la dernière écriture dans le navigateur. */
+const saved = ref<'ok' | 'erreur'>('ok')
 /** Incrémenté à chaque création : le panneau place le curseur dans le premier champ. */
 const created = ref(0)
 /** Période figée pendant un geste, pour que l'échelle ne bouge pas sous le pointeur. */
@@ -123,9 +127,12 @@ function moveProjet(from: number, delta: number) {
   track('projet_deplace', { sens: delta < 0 ? 'haut' : 'bas' })
   selection.value = { kind: 'projet', projet: to, index: to }
 }
-function newTimeline() {
+function blank(): Timeline {
   const fin = endOfMonth(fromDay(toDay(`${today.slice(0, 7)}-01`) + 160))
-  replace({ titre: 'Nouvelle timeline', periode: { debut: `${today.slice(0, 7)}-01`, fin }, projets: [{ nom: 'Projet 1', phases: [], jalons: [] }] })
+  return { titre: 'Nouvelle timeline', periode: { debut: `${today.slice(0, 7)}-01`, fin }, projets: [{ nom: 'Projet 1', phases: [], jalons: [] }] }
+}
+function newTimeline() {
+  openNew(blank())
   track('nouvelle_timeline')
 }
 
@@ -157,42 +164,132 @@ const slideLayout = computed(() => {
   return layout(doc.value, { measure, today })
 })
 
-async function loadHash() {
-  if (!location.hash.startsWith(HASH_PREFIX)) return
+// L'enregistrement : chaque modification de la timeline ouverte s'écrit dans le
+// navigateur. `written` est son dernier texte connu (lu ou écrit) : une ouverture
+// ou un rechargement venu d'un autre onglet ne réécrit rien.
+let written = ''
+const storage = () => {
+  try { return localStorage }
+  catch { return null } // stockage bloqué
+}
+let migrated = false
+/** Le stockage, après reprise de l'ancien brouillon unique. */
+function store() {
+  const s = storage()
+  if (s && !migrated) {
+    migrated = true
+    try { migrate(s) }
+    catch { /* stockage plein : le brouillon reste sous son ancienne clé */ }
+  }
+  return s
+}
+function persist(t: Timeline) {
+  const json = JSON.stringify(t)
+  if (!current.value || brokenDraft.value !== null || json === written) return
   try {
-    replace(await decodeTimeline(location.hash.slice(HASH_PREFIX.length)))
-    track('lien_ouvert', { resultat: 'ok', ...shape(doc.value) })
-    notice.value = { tone: 'info', text: 'Timeline ouverte depuis un lien. Votre brouillon précédent revient avec Annuler (Ctrl+Z).' }
+    save(store()!, current.value, t)
+    written = json
+    saved.value = 'ok'
+  }
+  catch {
+    if (saved.value === 'ok') notice.value = { tone: 'error', text: REFUSED }
+    saved.value = 'erreur'
+  }
+}
+const REFUSED = 'Le navigateur refuse d\'enregistrer cette timeline (stockage plein ou bloqué). Téléchargez son fichier JSON pour ne pas la perdre.'
+
+/** Les timelines de ce navigateur, de la plus récente à la plus ancienne. */
+function recent(): Entry[] {
+  const s = store()
+  try { return s ? list(s) : [] }
+  catch { return [] }
+}
+
+/** Affiche une autre timeline : historique vide, rien de sélectionné, vue recadrée. */
+function show(id: string | null, t: Timeline) {
+  current.value = id
+  past.length = future.length = 0
+  syncHistory()
+  selection.value = null
+  doc.value = t
+  written = JSON.stringify(t)
+  saved.value = id ? 'ok' : 'erreur'
+  replaced.value++
+}
+
+/** Ouvre une timeline enregistrée. Faux si elle n'existe pas dans ce navigateur. */
+function openId(id: string) {
+  const s = store()
+  const raw = s && load(s, id)
+  if (!raw) return false
+  brokenDraft.value = null
+  try { show(id, normalizeTimeline(JSON.parse(raw))) }
+  catch (err) {
+    track('brouillon_illisible')
+    // Le texte reste enregistré tel quel jusqu'à ce que le panneau JSON le corrige.
+    brokenDraft.value = raw
+    show(id, { titre: 'Sans titre', projets: [] })
+    notice.value = { tone: 'error', text: `Timeline illisible (${err instanceof Error ? err.message : err}) : son texte est dans le panneau JSON.` }
+  }
+  return true
+}
+
+/** Ajoute une timeline à celles du navigateur et l'ouvre. Si le navigateur refuse, elle s'ouvre sans être enregistrée. */
+function openNew(t: Timeline, text?: string) {
+  try {
+    openId(create(store()!, t))
+    if (text) notice.value = { tone: 'info', text }
+  }
+  catch {
+    show(null, structuredClone(t))
+    notice.value = { tone: 'error', text: REFUSED }
+  }
+}
+
+/** Le lien de partage de l'adresse devient une nouvelle timeline. Vrai si elle s'est ouverte. */
+async function openHash() {
+  if (!location.hash.startsWith(HASH_PREFIX)) return false
+  try {
+    const t = await decodeTimeline(location.hash.slice(HASH_PREFIX.length))
+    openNew(t, 'Timeline ouverte depuis un lien. Cette copie est enregistrée dans votre navigateur.')
+    track('lien_ouvert', { resultat: 'ok', ...shape(t) })
+    return true
   }
   catch (err) {
     track('lien_ouvert', { resultat: 'erreur' })
     notice.value = { tone: 'error', text: err instanceof Error ? err.message : String(err) }
+    return false
   }
-  // Le lien a servi : un rechargement doit rouvrir le brouillon, pas écraser les modifications.
-  history.replaceState(null, '', location.pathname + location.search)
+}
+
+// Une autre page de cet onglet (accueil, exemple) prépare la timeline ; l'éditeur l'ouvre à son montage.
+let incoming: { t: Timeline, text?: string } | null = null
+function openExample(t: Timeline) {
+  incoming = { t: structuredClone(t), text: 'Exemple ouvert : cette copie est à vous, modifiez-la librement.' }
+}
+function createNew() {
+  incoming = { t: blank() }
+  track('nouvelle_timeline')
+}
+/** À l'ouverture de l'éditeur : la timeline préparée par une autre page, s'il y en a une. */
+function openIncoming() {
+  const i = incoming
+  incoming = null
+  if (i) openNew(i.t, i.text)
+  return !!i
 }
 
 let started = false
 function start() {
   if (started) return
   started = true
-  let raw: string | null = null
-  try { raw = localStorage.getItem(DRAFT_KEY) }
-  catch { /* stockage bloqué : on part de l'exemple */ }
-  if (raw) {
-    try { doc.value = normalizeTimeline(JSON.parse(raw)) }
-    catch (err) {
-      track('brouillon_illisible')
-      brokenDraft.value = raw
-      notice.value = { tone: 'error', text: `Brouillon illisible (${err instanceof Error ? err.message : err}) : son texte est dans le panneau JSON.` }
-    }
-  }
-  watch(doc, (t) => {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(t)) }
-    catch { /* stockage plein ou bloqué : le brouillon n'est pas gardé */ }
-  }, { deep: true })
-  loadHash()
-  window.addEventListener('hashchange', loadHash)
+  watch(doc, persist, { deep: true })
+  // Un autre onglet a modifié la timeline ouverte : la dernière écriture l'emporte.
+  window.addEventListener('storage', (e) => {
+    if (!current.value || e.key !== docKey(current.value) || e.newValue === null || e.newValue === written) return
+    openId(current.value)
+    notice.value = { tone: 'info', text: 'Cette timeline a été modifiée dans un autre onglet. Sa dernière version est affichée.' }
+  })
   loadFonts()
 }
 
@@ -204,39 +301,12 @@ function loadFonts() {
   return fontsLoading
 }
 
-/** Ouvre une timeline venue d'une page publique (exemple, nouvelle) ; le brouillon reste derrière Annuler. */
-function open(t: Timeline, text: string) {
-  start()
-  replace(structuredClone(t))
-  notice.value = { tone: 'info', text }
-}
-
-/** Depuis une page publique : un exemple, ou une timeline vierge ; le brouillon reste derrière Annuler. */
-function openExample(t: Timeline) {
-  const had = draftTitle()
-  open(t, had ? `Exemple ouvert. Votre brouillon « ${had} » revient avec Annuler (Ctrl+Z).` : 'Exemple ouvert : il est à vous, modifiez-le librement.')
-}
-function createNew() {
-  const had = draftTitle()
-  start()
-  newTimeline()
-  if (had) notice.value = { tone: 'info', text: `Nouvelle timeline. Votre brouillon « ${had} » revient avec Annuler (Ctrl+Z).` }
-}
-
-/** Le titre du brouillon enregistré, s'il y en a un, sans charger l'éditeur. */
-function draftTitle(): string | null {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY)
-    return raw ? (JSON.parse(raw).titre ?? 'Sans titre') : null
-  }
-  catch { return null }
-}
-
 export function useTimeline() {
   return {
-    doc, selection, notice, brokenDraft, created, frozenPeriod, zoom, replaced, canUndo, canRedo, fontsTick, slideLayout,
+    doc, selection, notice, brokenDraft, current, saved, created, frozenPeriod, zoom, replaced, canUndo, canRedo, fontsTick, slideLayout,
     measure, today, start, snapshot, change, beginTyping, typed, replace, undo, redo, selectedItem, clampDate, dayAfter,
-    addProjet, addJalon, pushPhase, removeSelected, moveProjet, newTimeline, open, openExample, createNew, draftTitle, loadFonts, styleThumb, thumb,
+    addProjet, addJalon, pushPhase, removeSelected, moveProjet, newTimeline, openNew, openId, openHash, openIncoming, openExample, createNew, recent,
+    loadFonts, styleThumb, thumb,
     period: () => frozenPeriod.value ?? bounds(doc.value),
   }
 }
