@@ -30,10 +30,7 @@ const date = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 's
 // Le haut à gauche de la timeline, au cadrage des aperçus d'exemple.
 const FRAME = [768, 320] as const
 
-function createTimeline() {
-  tl.createNew()
-  navigateTo('/editeur')
-}
+const creator = ref<{ open: () => void }>()
 
 // Avis de la page : une suppression s'y annule ; une erreur reste jusqu'à ce qu'on la ferme.
 const notice = ref<{ text: string, tone: 'info' | 'error', undo?: Item } | null>(null)
@@ -88,7 +85,7 @@ function undo() {
             Elles restent dans ce navigateur, sur cet appareil. Effacer les données du site les efface aussi&nbsp;: pour garder une timeline ailleurs, téléchargez son fichier JSON.
           </p>
         </div>
-        <button class="btn btn-primary h-11 px-5 text-[15px]" type="button" @click="createTimeline">Créer une timeline</button>
+        <button class="btn btn-primary h-11 px-5 text-[15px]" type="button" @click="creator!.open()">Créer une timeline</button>
       </div>
 
       <p v-if="items && !items.length" class="mt-12 leading-relaxed text-muted">
@@ -131,5 +128,6 @@ function undo() {
         <button class="btn btn-icon size-7" type="button" aria-label="Fermer" @click="notice = null"><X :size="15" /></button>
       </p>
     </Transition>
+    <CreateDialog ref="creator" />
   </div>
 </template>

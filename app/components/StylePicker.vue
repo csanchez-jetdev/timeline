@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { STYLE_DEFS, THUMB_FRAME as FRAME } from '~/utils/styles'
-import { type Style, STYLES } from '~/utils/timeline'
+import { type Style, STYLES, type Timeline } from '~/utils/timeline'
 
 /*
- * Le choix du style sur la timeline de la personne : chaque vignette rend ses
- * trois premiers projets dans un style, à la même échelle (même largeur, même
+ * Le choix du style sur la timeline de la personne (ou sur `timeline`) : chaque vignette
+ * rend ses trois premiers projets dans un style, à la même échelle (même largeur, même
  * cadrage), pour comparer d'un coup d'œil. Monté seulement quand il est visible.
  */
 const model = defineModel<Style>({ required: true })
-defineProps<{ columns?: number }>()
+const props = defineProps<{ columns?: number, timeline?: Timeline }>()
 const tl = useTimeline()
 
-const thumbs = computed(() => STYLES.map(style => ({ style, html: tl.styleThumb(style) })))
+const thumbs = computed(() => STYLES.map(style => ({ style, html: props.timeline ? tl.thumb(props.timeline, style) : tl.styleThumb(style) })))
 </script>
 
 <template>

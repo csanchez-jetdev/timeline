@@ -6,7 +6,7 @@ import { track } from '~/utils/track'
 
 /* Le rail d'outils : annuler, fichier, réglages, aide. Icônes seules, nommées pour les lecteurs d'écran. */
 defineProps<{ horizontal?: boolean }>()
-const emit = defineEmits<{ open: [], save: [], json: [], settings: [], tour: [] }>()
+const emit = defineEmits<{ create: [], open: [], save: [], json: [], settings: [], tour: [] }>()
 const tl = useTimeline()
 const close = (id: string) => document.getElementById(id)?.hidePopover()
 </script>
@@ -32,7 +32,7 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
 
     <div id="file-menu" popover class="menu" role="menu" aria-label="Fichier" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')" @keydown="menuKeys">
       <NuxtLink to="/timelines" class="menu-item" role="menuitem"><LayoutList :size="16" /> Mes timelines</NuxtLink>
-      <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); tl.newTimeline()"><FilePlus2 :size="16" /> Nouvelle timeline</button>
+      <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('create')"><FilePlus2 :size="16" /> Nouvelle timeline…</button>
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('open')"><Upload :size="16" /> Ouvrir un fichier JSON…</button>
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('save')"><FileDown :size="16" /> Télécharger le fichier JSON</button>
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('json')"><Braces :size="16" /> Modifier le JSON…</button>
