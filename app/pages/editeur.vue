@@ -89,6 +89,7 @@ function keys(e: KeyboardEvent) {
   else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); tl.redo(); track('raccourci', { touche: 'retablir' }) }
   else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); tl.removeSelected(); track('raccourci', { touche: 'supprimer' }) }
   else if (e.key === 'Escape') { selection.value = null; track('raccourci', { touche: 'echap' }) }
+  else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) { e.preventDefault(); canvas.value?.menuOnSelection(); track('raccourci', { touche: 'menu' }) }
 }
 
 const warnings = computed(() => {
@@ -138,7 +139,7 @@ async function share() {
   }
 }
 
-const canvas = ref<{ fit: () => void, zoomTo: (s: number) => void, zoomBy: (k: number) => void }>()
+const canvas = ref<{ fit: () => void, zoomTo: (s: number) => void, zoomBy: (k: number) => void, menuOnSelection: () => void }>()
 type Format = 'png' | 'pptx' | 'gslides'
 const exportDialog = ref<{ open: (f?: Format) => void }>()
 const EXPORTS = [

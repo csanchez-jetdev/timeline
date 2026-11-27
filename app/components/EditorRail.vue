@@ -49,6 +49,7 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
         <dt class="font-medium">Molette</dt><dd class="text-muted">ou deux doigts : faire défiler</dd>
         <dt class="font-medium">{{ mod }} + molette</dt><dd class="text-muted">ou pincer : zoomer</dd>
         <dt class="font-medium">Suppr</dt><dd class="text-muted">supprimer la sélection</dd>
+        <dt class="font-medium">Clic droit</dt><dd class="text-muted">ou appui long, Maj + F10&nbsp;: les actions d'un élément</dd>
         <dt class="font-medium">Échap</dt><dd class="text-muted">revenir aux réglages de la timeline</dd>
         <dt class="font-medium">{{ mod }} + Z</dt><dd class="text-muted">annuler ; avec Maj, rétablir</dd>
       </dl>
