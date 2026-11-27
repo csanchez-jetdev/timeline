@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { CircleAlert, Download, Eye, Info, Link2, Maximize, Minus, PanelRightOpen, PenLine, Plus, TriangleAlert, X } from '@lucide/vue'
+import { Check, ChevronDown, CircleAlert, Download, Eye, FileDown, Image as ImageIcon, Info, Link2, Maximize, Minus, PanelRightOpen, PenLine, Plus, Presentation, TriangleAlert, X } from '@lucide/vue'
 import { ZOOM } from '~/composables/useTimeline'
 import { EXEMPLE } from '~/utils/exemples'
 import { downloadJson } from '~/utils/export'
 import { slideReadability } from '~/utils/layout'
-import { place } from '~/utils/popover'
+import { menuKeys, place } from '~/utils/popover'
 import { encodeTimeline, HASH_PREFIX } from '~/utils/share'
 import { shape, track } from '~/utils/track'
 import { normalizeTimeline } from '~/utils/timeline'
@@ -139,7 +139,14 @@ async function share() {
 }
 
 const canvas = ref<{ fit: () => void, zoomTo: (s: number) => void, zoomBy: (k: number) => void }>()
-const exportDialog = ref<{ open: () => void }>()
+type Format = 'png' | 'pptx' | 'gslides'
+const exportDialog = ref<{ open: (f?: Format) => void }>()
+const EXPORTS = [
+  { value: 'png', label: 'Image PNG', icon: ImageIcon },
+  { value: 'pptx', label: 'PowerPoint', icon: Presentation },
+  { value: 'gslides', label: 'Google Slides', icon: Presentation },
+] as const
+const closeMenu = () => document.getElementById('export-menu')?.hidePopover()
 const jsonDialog = ref<{ open: () => void }>()
 // Les boutons de zoom ; la molette et le pincement, trop bavards, ne remontent pas.
 function zoomClick(e: MouseEvent) {
@@ -161,13 +168,20 @@ function settings() {
       </NuxtLink>
       <span class="h-5 w-px shrink-0 bg-line" aria-hidden="true" />
       <input
-        class="min-w-0 flex-1 truncate rounded-md border border-transparent bg-transparent px-2 py-1 text-[15px] font-medium hover:border-line focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-accent/25 md:max-w-md"
+        class="min-w-0 flex-1 truncate rounded-md border border-transparent bg-transparent px-2 py-1 text-[15px] font-medium hover:border-line focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-accent/25 supports-[field-sizing:content]:flex-initial supports-[field-sizing:content]:field-sizing-content md:max-w-md"
         :value="doc.titre"
         aria-label="Titre de la timeline"
         @focus="tl.beginTyping"
         @input="tl.typed(() => { doc.titre = ($event.target as HTMLInputElement).value })"
         @change="doc.titre = doc.titre.trim() || 'Sans titre'; track('champ_modifie', { element: 'timeline', champ: 'titre' })"
       >
+      <!-- L'enregistrement est automatique : on le montre, plutôt qu'un bouton Enregistrer. -->
+      <span v-if="tl.saved.value === 'ok'" class="flex shrink-0 items-center gap-1 text-xs text-muted max-lg:hidden">
+        <Check :size="14" aria-hidden="true" /> Enregistré dans ce navigateur
+      </span>
+      <span v-else class="flex shrink-0 items-center gap-1 text-xs text-alert max-lg:hidden" title="Le navigateur refuse d'enregistrer : téléchargez le fichier JSON depuis le menu Exporter.">
+        <CircleAlert :size="14" aria-hidden="true" /> Non enregistré
+      </span>
       <div class="ml-auto flex shrink-0 items-center gap-1.5">
         <div class="flex rounded-lg bg-wash p-0.5" role="radiogroup" aria-label="Mode">
           <label v-for="m in MODES" :key="m.v" class="flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium text-muted has-checked:bg-paper has-checked:text-ink has-checked:shadow-sm has-focus-visible:outline-2 has-focus-visible:outline-accent">
@@ -189,8 +203,28 @@ function settings() {
             </ul>
           </div>
         </template>
-        <button class="btn" type="button" @click="share"><Link2 :size="16" /><span class="max-sm:sr-only">Partager</span></button>
-        <button class="btn btn-primary" type="button" @click="exportDialog!.open()"><Download :size="16" /><span class="max-sm:sr-only">Exporter</span></button>
+        <!-- Une seule action pour sortir la timeline de l'outil : une slide, un lien ou le fichier. -->
+        <button class="btn btn-primary" type="button" popovertarget="export-menu" aria-haspopup="menu">
+          <Download :size="16" /><span class="max-sm:sr-only">Exporter</span><ChevronDown :size="14" class="-mr-0.5" aria-hidden="true" />
+        </button>
+        <div id="export-menu" popover class="menu" role="menu" aria-label="Exporter" @beforetoggle="place($event, 'below-end')" @keydown="menuKeys">
+          <div role="group" aria-labelledby="export-menu-slide">
+            <p id="export-menu-slide" class="px-2.5 pt-1.5 pb-1 text-xs font-medium text-muted">Exporter</p>
+            <button v-for="f in EXPORTS" :key="f.value" class="menu-item" type="button" role="menuitem" @click="closeMenu(); exportDialog!.open(f.value)">
+              <component :is="f.icon" :size="16" /> {{ f.label }}…
+            </button>
+          </div>
+          <div class="mx-1 my-1.5 h-px bg-line" role="separator" />
+          <div role="group" aria-labelledby="export-menu-lien">
+            <p id="export-menu-lien" class="px-2.5 pt-1 pb-1 text-xs font-medium text-muted">Partager</p>
+            <button class="menu-item" type="button" role="menuitem" @click="closeMenu(); share()"><Link2 :size="16" /> Copier le lien</button>
+          </div>
+          <div class="mx-1 my-1.5 h-px bg-line" role="separator" />
+          <div role="group" aria-labelledby="export-menu-copie">
+            <p id="export-menu-copie" class="px-2.5 pt-1 pb-1 text-xs font-medium text-muted">Garder une copie</p>
+            <button class="menu-item" type="button" role="menuitem" @click="closeMenu(); saveFile()"><FileDown :size="16" /> Télécharger le fichier JSON</button>
+          </div>
+        </div>
       </div>
     </header>
 
