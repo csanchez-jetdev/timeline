@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, Download, Eye, Info, Link2, Maximize, Minus, PanelRight, PenLine, Plus, TriangleAlert, X } from '@lucide/vue'
+import { CircleAlert, Download, Eye, Info, Link2, Maximize, Minus, PanelRightOpen, PenLine, Plus, TriangleAlert, X } from '@lucide/vue'
 import { ZOOM } from '~/composables/useTimeline'
 import { EXEMPLE } from '~/utils/exemples'
 import { downloadJson } from '~/utils/export'
@@ -65,9 +65,20 @@ const MODES = [{ v: 'modifier', label: 'Modifier', icon: PenLine }, { v: 'apercu
 watch(mode, m => track('mode_change', { mode: m }))
 const panelOpen = ref(true)
 watch(selection, (s) => { if (s) panelOpen.value = true })
+// Le panneau se masque depuis son coin haut droit, et se rouvre au même endroit ; le focus suit.
+const inspector = ref<{ focusClose: () => void }>()
+const reopenButton = ref<HTMLButtonElement>()
+async function togglePanel(open: boolean) {
+  panelOpen.value = open
+  track('panneau', { ouvert: open ? 'oui' : 'non' })
+  await nextTick()
+  if (open) inspector.value?.focusClose()
+  else reopenButton.value?.focus()
+}
 const RAIL = 50, PANEL = 320, EDGE = 12, GAP = 16
 const inset = computed(() => wide.value
-  ? { top: GAP, left: EDGE + RAIL + GAP, right: panelOpen.value ? EDGE + PANEL + GAP : GAP, bottom: 64 }
+  // Panneau masqué, son bouton de réouverture garde une colonne à droite, comme le rail à gauche.
+  ? { top: GAP, left: EDGE + RAIL + GAP, right: EDGE + (panelOpen.value ? PANEL : RAIL) + GAP, bottom: 64 }
   : { top: EDGE + 40 + EDGE, left: EDGE, right: EDGE, bottom: EDGE + RAIL + EDGE })
 
 function keys(e: KeyboardEvent) {
@@ -178,9 +189,6 @@ function settings() {
             </ul>
           </div>
         </template>
-        <button v-if="mode === 'modifier'" class="btn btn-icon max-md:hidden" type="button" :aria-pressed="panelOpen" aria-label="Propriétés" title="Propriétés" @click="panelOpen = !panelOpen; track('panneau', { ouvert: panelOpen ? 'oui' : 'non' })">
-          <PanelRight :size="18" :stroke-width="1.75" />
-        </button>
         <button class="btn" type="button" @click="share"><Link2 :size="16" /><span class="max-sm:sr-only">Partager</span></button>
         <button class="btn btn-primary" type="button" @click="exportDialog!.open()"><Download :size="16" /><span class="max-sm:sr-only">Exporter</span></button>
       </div>
@@ -204,10 +212,17 @@ function settings() {
 
         <Inspector
           v-if="panelOpen"
+          ref="inspector"
           class="absolute"
           :class="wide ? 'top-3 right-3 bottom-3 w-80' : 'inset-x-3 bottom-[74px] max-h-[55%]'"
-          @close="panelOpen = false"
+          @close="togglePanel(false)"
         />
+        <!-- Sur petit écran, la sélection et les réglages rouvrent le panneau. -->
+        <div v-else-if="wide" class="float absolute top-3 right-3 p-2">
+          <button ref="reopenButton" class="btn btn-icon size-8" type="button" aria-expanded="false" aria-label="Afficher les propriétés" title="Afficher les propriétés" @click="togglePanel(true)">
+            <PanelRightOpen :size="18" :stroke-width="1.75" />
+          </button>
+        </div>
 
         <div
           class="float absolute flex items-center p-1"
