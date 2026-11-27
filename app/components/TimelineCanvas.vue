@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Plus } from '@lucide/vue'
 import { ZOOM } from '~/composables/useTimeline'
 import { layout, type ItemRef as Sel } from '~/utils/layout'
 import { svgInner } from '~/utils/svg'
@@ -10,8 +11,9 @@ import { ddmmyyyy, fromDay, toDay } from '~/utils/timeline'
  * ce qu'on modifie est ce qu'on exporte. Le zoom l'agrandit en entier, texte
  * compris ; molette, deux doigts, glisser le fond ou Espace + glisser la déplacent.
  * Sur la page : clic pour sélectionner, glisser un jalon ou une phase pour changer
- * ses dates, glisser sur une ligne vide pour dessiner une phase, double-clic pour
- * poser un jalon.
+ * ses dates, glisser sur une ligne vide pour dessiner une phase, double-clic sur un
+ * élément pour le renommer, ailleurs sur une ligne pour poser un jalon. Sous le
+ * dernier projet, une ligne « Ajouter un projet » qui n'existe que dans l'éditeur.
  */
 // Les marges que laissent le rail, le panneau et la pastille qui flottent au-dessus :
 // la zone libre, où la page s'ajuste et se centre.
@@ -28,7 +30,7 @@ const pad = computed(() => ({ x: Math.round(view.value.w / 2), y: Math.round(vie
 
 const l = computed(() => {
   void tl.fontsTick.value
-  return layout(doc.value, { measure: tl.measure, period: tl.period(), today: tl.today })
+  return layout(doc.value, { measure: tl.measure, period: tl.period(), today: tl.today, addRow: true })
 })
 const html = computed(() => svgInner(l.value, { interactive: true, selected: selection.value }))
 
@@ -318,13 +320,27 @@ function up(e: PointerEvent) {
   if (svg.value?.hasPointerCapture(e.pointerId)) svg.value.releasePointerCapture(e.pointerId)
 }
 
-// Double-clic sur une ligne, y compris sur une phase : un jalon à cette date.
+/** Sélectionne l'élément et place le curseur dans son nom, dans le panneau. */
+function rename(ref: Sel) {
+  selection.value = ref
+  tl.created.value++
+  track('renommer', { element: ref.kind, depuis: 'double_clic' })
+}
+// Double-clic sur une phase, un jalon ou le nom d'un projet : le renommer. Ailleurs sur une ligne : un jalon à cette date.
 function dbl(e: MouseEvent) {
   const p = point(e)
+  // Le premier clic a sélectionné, donc redessiné la page : la cible d'origine n'est plus là.
+  const ref = refOf(document.elementFromPoint(e.clientX, e.clientY))
   const row = rowAt(p.y)
-  if (row < 0 || !inAxis(p.x) || refOf(e.target)?.kind === 'jalon') return
+  if (ref) return rename(ref)
+  if (row >= 0 && p.x < l.value.x0) return rename({ kind: 'projet', projet: row, index: row })
+  if (row < 0 || !inAxis(p.x)) return
   tl.addJalon(row, l.value.dateAt(p.x))
   track('jalon_ajoute', { depuis: 'double_clic' })
+}
+function dblColumn(e: MouseEvent) {
+  pick(e)
+  if (selection.value) rename(selection.value)
 }
 </script>
 
@@ -342,7 +358,7 @@ function dbl(e: MouseEvent) {
     @wheel="wheel"
     @scroll="scrollLeft = scroller!.scrollLeft"
   >
-    <div ref="content" class="w-max" :style="{ padding: `${pad.y}px ${pad.x}px` }">
+    <div ref="content" class="relative w-max" :style="{ padding: `${pad.y}px ${pad.x}px` }">
       <!-- eslint-disable-next-line vue/no-v-html : balisage produit par svgInner, textes échappés -->
       <svg
         ref="svg"
@@ -360,6 +376,24 @@ function dbl(e: MouseEvent) {
         @dblclick="dbl"
         v-html="html"
       />
+      <!-- La ligne d'ajout, à l'échelle de la page : dessinée hors de la scène, elle ne sort dans aucun export. -->
+      <button
+        v-if="l.addRow"
+        class="add-row absolute flex origin-top-left items-center gap-2 rounded-lg border border-dashed px-4 text-[15px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        :style="{
+          left: `${pad.x + 12 * zoom}px`,
+          top: `${pad.y + (l.addRow.top + 6) * zoom}px`,
+          width: `${l.width - 24}px`,
+          height: `${l.addRow.bottom - l.addRow.top - 12}px`,
+          transform: `scale(${zoom})`,
+          color: l.palette.muted,
+          '--row-ink': l.palette.ink,
+        }"
+        type="button"
+        @click="tl.addProjet()"
+      >
+        <Plus :size="16" aria-hidden="true" /> Ajouter un projet
+      </button>
     </div>
     <!-- La colonne des projets, le même dessin cadré sur ses premiers pixels : elle reste en place
          quand la page défile vers la gauche, depuis le bord du canevas, sous le rail. -->
@@ -377,6 +411,7 @@ function dbl(e: MouseEvent) {
         :style="{ cursor: panning ? 'grabbing' : space ? 'grab' : 'pointer' }"
         aria-hidden="true"
         @click="pick"
+        @dblclick="dblColumn"
         v-html="html"
       />
     </div>
@@ -392,6 +427,9 @@ function dbl(e: MouseEvent) {
 
 <style>
 .timeline .sel { filter: drop-shadow(0 0 1.5px #cf4329) drop-shadow(0 0 3px rgb(207 67 41 / 0.7)); }
+/* Les couleurs viennent de la palette de la timeline, adaptée à son fond. */
+.add-row { border-color: color-mix(in srgb, currentColor 45%, transparent); }
+.add-row:hover { border-color: currentColor; color: var(--row-ink); }
 /* Des points tous les 20 px, qui suivent le défilement. */
 .canvas-ground {
   background-color: var(--color-ground);

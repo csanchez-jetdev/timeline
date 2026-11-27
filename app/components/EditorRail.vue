@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Braces, CircleHelp, Download, FilePlus2, FolderOpen, LayoutList, Plus, Redo2, Save, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
+import { Braces, CircleHelp, Download, FilePlus2, FolderOpen, LayoutList, Redo2, Save, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
 import { place } from '~/utils/popover'
 import { track } from '~/utils/track'
 
-/* Le rail d'outils : ajouter, annuler, fichier, réglages, aide. Icônes seules, nommées pour les lecteurs d'écran. */
+/* Le rail d'outils : annuler, fichier, réglages, aide. Icônes seules, nommées pour les lecteurs d'écran. */
 defineProps<{ horizontal?: boolean }>()
 const emit = defineEmits<{ open: [], save: [], json: [], settings: [] }>()
 const tl = useTimeline()
@@ -13,9 +13,6 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
 
 <template>
   <nav class="float flex gap-0.5 p-1.5" :class="horizontal ? 'flex-row' : 'flex-col'" aria-label="Outils">
-    <button class="btn btn-icon" type="button" aria-label="Ajouter un projet" title="Ajouter un projet" @click="tl.addProjet()">
-      <Plus :size="18" :stroke-width="1.75" />
-    </button>
     <button class="btn btn-icon" type="button" :disabled="!tl.canUndo.value" aria-label="Annuler" :title="`Annuler (${mod}+Z)`" @click="tl.undo()">
       <Undo2 :size="18" :stroke-width="1.75" />
     </button>
@@ -47,7 +44,8 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
     <div id="help" popover class="menu w-80 p-4" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')" @toggle="($event as ToggleEvent).newState === 'open' && track('aide_ouverte')">
       <h2 class="mb-2 text-sm font-semibold">Sur la timeline</h2>
       <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13px]">
-        <dt class="font-medium">Double-clic</dt><dd class="text-muted">sur une ligne : un jalon à cette date</dd>
+        <dt class="font-medium">Double-clic</dt><dd class="text-muted">sur un élément&nbsp;: le renommer</dd>
+        <dt class="font-medium">Double-clic</dt><dd class="text-muted">ailleurs sur une ligne : un jalon à cette date</dd>
         <dt class="font-medium">Glisser</dt><dd class="text-muted">sur une ligne vide : une phase</dd>
         <dt class="font-medium">Glisser</dt><dd class="text-muted">un jalon, une phase ou ses bords : changer les dates</dd>
         <dt class="font-medium">Glisser le fond</dt><dd class="text-muted">ou Espace + glisser : déplacer la vue</dd>
