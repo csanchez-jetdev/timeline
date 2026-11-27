@@ -12,7 +12,9 @@ import { contrast } from '../app/utils/styles.ts'
 import { create, DRAFT_KEY, list, load, migrate, remove, save } from '../app/utils/store.ts'
 import { sameRef } from '../app/utils/svg.ts'
 import { EXEMPLE, EXEMPLES } from '../app/utils/exemples.ts'
-import { bounds, fromDay, normalizeTimeline, STYLES, type Timeline, TimelineError, toDay } from '../app/utils/timeline.ts'
+import { NOUVEAUTES } from '../app/utils/nouveautes.ts'
+import pkg from '../package.json' with { type: 'json' }
+import { bounds, fromDay, isDate, normalizeTimeline, STYLES, type Timeline, TimelineError, toDay } from '../app/utils/timeline.ts'
 
 const clone = <T>(v: T): T => structuredClone(v)
 const TODAY = '2026-11-25'
@@ -159,6 +161,19 @@ for (const [name, t] of cas) for (const style of STYLES) {
   assert.equal(traits(true) - traits(false), 1)
 }
 console.log('mise en page : ok')
+
+// Le journal des nouveautés : versions uniques et datées, la plus récente en tête, égale à package.json.
+{
+  const versions = NOUVEAUTES.map(v => v.version)
+  assert.equal(new Set(versions).size, versions.length, 'version en double')
+  assert.equal(versions[0], pkg.version, 'la première entrée doit porter la version de package.json')
+  for (const [i, v] of NOUVEAUTES.entries()) {
+    assert.ok(isDate(v.date), `${v.version} : date invalide`)
+    assert.ok(i === 0 || NOUVEAUTES[i - 1]!.date >= v.date, `${v.version} : les versions vont de la plus récente à la plus ancienne`)
+    assert.ok(v.nouveau?.length || v.ameliore?.length || v.corrige?.length, `${v.version} : entrée vide`)
+  }
+  console.log('nouveautés : ok')
+}
 
 // Le lien : l'aller-retour rend exactement la timeline, un lien abîmé est refusé proprement.
 {

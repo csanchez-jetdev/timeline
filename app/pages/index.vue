@@ -94,6 +94,7 @@ const GESTES = [
       <span class="flex items-center gap-2"><BrandMark class="size-5" /> Timeline</span>
       <span>Exports PNG, PowerPoint et Google Slides. Aucun compte.</span>
       <a href="https://github.com/csanchez-jetdev/timeline" target="_blank" rel="noopener" class="ml-auto underline-offset-4 hover:text-ink hover:underline">Code source sur GitHub</a>
+      <NuxtLink to="/nouveautes" class="underline-offset-4 hover:text-ink hover:underline">Nouveautés</NuxtLink>
       <NuxtLink to="/editeur" class="underline-offset-4 hover:text-ink hover:underline">Ouvrir l'éditeur</NuxtLink>
     </footer>
   </div>
