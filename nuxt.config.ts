@@ -8,9 +8,9 @@ export default defineNuxtConfig({
   // `nuxt generate` sort un site statique. Les pages publiques sont prérendues
   // (texte et aperçus de lien sans JavaScript) ; l'éditeur tourne seulement
   // dans le navigateur : la timeline ne quitte jamais le poste, le lien la
-  // porte dans son fragment.
-  routeRules: { '/editeur': { ssr: false } },
-  nitro: { prerender: { routes: ['/', '/editeur', ...EXEMPLES.map(e => `/exemples/${e.slug}`)] } },
+  // porte dans son fragment. La liste des timelines lit le stockage du navigateur.
+  routeRules: { '/editeur': { ssr: false }, '/timelines': { ssr: false } },
+  nitro: { prerender: { routes: ['/', '/editeur', '/timelines', ...EXEMPLES.map(e => `/exemples/${e.slug}`)] } },
   runtimeConfig: {
     public: {
       rybbitSiteId: '', // NUXT_PUBLIC_RYBBIT_SITE_ID

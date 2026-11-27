@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Braces, CircleHelp, Download, FilePlus2, FolderOpen, Plus, Redo2, Save, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
+import { Braces, CircleHelp, Download, FilePlus2, FolderOpen, LayoutList, Plus, Redo2, Save, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
 import { place } from '~/utils/popover'
 import { track } from '~/utils/track'
 
@@ -37,6 +37,7 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
     </button>
 
     <div id="file-menu" popover class="menu" role="menu" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')">
+      <NuxtLink to="/timelines" class="menu-item" role="menuitem"><LayoutList :size="16" /> Mes timelines</NuxtLink>
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); tl.newTimeline()"><FilePlus2 :size="16" /> Nouvelle timeline</button>
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('open')"><Upload :size="16" /> Ouvrir un fichier JSON…</button>
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('save')"><Download :size="16" /> Enregistrer le JSON</button>
