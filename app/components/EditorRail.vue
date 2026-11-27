@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Braces, CircleHelp, FileDown, FilePlus2, FolderOpen, LayoutList, Newspaper, Redo2, Route, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
+import { MOD, SHORTCUTS as K } from '~/utils/keys'
 import { menuKeys, place } from '~/utils/popover'
 import { track } from '~/utils/track'
 
@@ -7,16 +8,15 @@ import { track } from '~/utils/track'
 defineProps<{ horizontal?: boolean }>()
 const emit = defineEmits<{ open: [], save: [], json: [], settings: [], tour: [] }>()
 const tl = useTimeline()
-const mod = import.meta.client && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'
 const close = (id: string) => document.getElementById(id)?.hidePopover()
 </script>
 
 <template>
   <nav class="float flex gap-0.5 p-1.5" :class="horizontal ? 'flex-row' : 'flex-col'" aria-label="Outils">
-    <button class="btn btn-icon" type="button" :disabled="!tl.canUndo.value" aria-label="Annuler" :title="`Annuler (${mod}+Z)`" @click="tl.undo()">
+    <button class="btn btn-icon" type="button" :disabled="!tl.canUndo.value" aria-label="Annuler" :title="`Annuler (${K.annuler.label})`" :aria-keyshortcuts="K.annuler.aria" @click="tl.undo()">
       <Undo2 :size="18" :stroke-width="1.75" />
     </button>
-    <button class="btn btn-icon" type="button" :disabled="!tl.canRedo.value" aria-label="Rétablir" :title="`Rétablir (${mod}+Maj+Z)`" @click="tl.redo()">
+    <button class="btn btn-icon" type="button" :disabled="!tl.canRedo.value" aria-label="Rétablir" :title="`Rétablir (${K.retablir.label})`" :aria-keyshortcuts="K.retablir.aria" @click="tl.redo()">
       <Redo2 :size="18" :stroke-width="1.75" />
     </button>
     <span class="m-1 bg-line" :class="horizontal ? 'w-px self-stretch' : 'h-px'" aria-hidden="true" />
@@ -38,7 +38,7 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('json')"><Braces :size="16" /> Modifier le JSON…</button>
     </div>
 
-    <div id="help" popover class="menu w-80 p-4" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')" @toggle="($event as ToggleEvent).newState === 'open' && track('aide_ouverte')">
+    <div id="help" popover class="menu max-h-[calc(100dvh-16px)] w-80 overflow-y-auto p-4" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')" @toggle="($event as ToggleEvent).newState === 'open' && track('aide_ouverte')">
       <div class="-mx-2.5 -mt-2.5 mb-3 flex flex-col border-b border-line px-1 pb-1.5">
         <button class="menu-item" type="button" @click="close('help'); emit('tour')"><Route :size="16" /> Revoir la visite guidée</button>
         <NuxtLink to="/nouveautes" class="menu-item"><Newspaper :size="16" /> Nouveautés</NuxtLink>
@@ -51,11 +51,17 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
         <dt class="font-medium">Glisser</dt><dd class="text-muted">un jalon, une phase ou ses bords : changer les dates</dd>
         <dt class="font-medium">Glisser le fond</dt><dd class="text-muted">ou Espace + glisser : déplacer la vue</dd>
         <dt class="font-medium">Molette</dt><dd class="text-muted">ou deux doigts : faire défiler</dd>
-        <dt class="font-medium">{{ mod }} + molette</dt><dd class="text-muted">ou pincer : zoomer</dd>
-        <dt class="font-medium">Suppr</dt><dd class="text-muted">supprimer la sélection</dd>
+        <dt class="font-medium">{{ MOD }} + molette</dt><dd class="text-muted">ou pincer : zoomer</dd>
         <dt class="font-medium">Clic droit</dt><dd class="text-muted">ou appui long, Maj + F10&nbsp;: les actions d'un élément, ou de la timeline sur le fond</dd>
-        <dt class="font-medium">Échap</dt><dd class="text-muted">revenir aux réglages de la timeline</dd>
-        <dt class="font-medium">{{ mod }} + Z</dt><dd class="text-muted">annuler ; avec Maj, rétablir</dd>
+      </dl>
+      <h2 class="mt-4 mb-2 text-sm font-semibold">Au clavier</h2>
+      <dl class="keys grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1.5 text-[13px]">
+        <dt><kbd>{{ K.renommer.label }}</kbd> ou <kbd>F2</kbd></dt><dd class="text-muted">renommer la sélection</dd>
+        <dt><kbd>{{ K.supprimer.label }}</kbd></dt><dd class="text-muted">supprimer la sélection</dd>
+        <dt><kbd>{{ K.monter.label }}</kbd> <kbd>{{ K.descendre.label }}</kbd></dt><dd class="text-muted">monter ou descendre le projet sélectionné</dd>
+        <dt><kbd>{{ K.annuler.label }}</kbd></dt><dd class="text-muted">annuler</dd>
+        <dt><kbd>{{ K.retablir.label }}</kbd></dt><dd class="text-muted">rétablir</dd>
+        <dt><kbd>Échap</kbd></dt><dd class="text-muted">revenir aux réglages de la timeline</dd>
       </dl>
     </div>
   </nav>
