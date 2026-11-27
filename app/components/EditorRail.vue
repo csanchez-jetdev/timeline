@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Braces, CircleHelp, FileDown, FilePlus2, FolderOpen, LayoutList, Redo2, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
+import { Braces, CircleHelp, FileDown, FilePlus2, FolderOpen, LayoutList, Newspaper, Redo2, Route, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
 import { menuKeys, place } from '~/utils/popover'
 import { track } from '~/utils/track'
 
 /* Le rail d'outils : annuler, fichier, réglages, aide. Icônes seules, nommées pour les lecteurs d'écran. */
 defineProps<{ horizontal?: boolean }>()
-const emit = defineEmits<{ open: [], save: [], json: [], settings: [] }>()
+const emit = defineEmits<{ open: [], save: [], json: [], settings: [], tour: [] }>()
 const tl = useTimeline()
 const mod = import.meta.client && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'
 const close = (id: string) => document.getElementById(id)?.hidePopover()
@@ -39,6 +39,10 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
     </div>
 
     <div id="help" popover class="menu w-80 p-4" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')" @toggle="($event as ToggleEvent).newState === 'open' && track('aide_ouverte')">
+      <div class="-mx-2.5 -mt-2.5 mb-3 flex flex-col border-b border-line px-1 pb-1.5">
+        <button class="menu-item" type="button" @click="close('help'); emit('tour')"><Route :size="16" /> Revoir la visite guidée</button>
+        <NuxtLink to="/nouveautes" class="menu-item"><Newspaper :size="16" /> Nouveautés</NuxtLink>
+      </div>
       <h2 class="mb-2 text-sm font-semibold">Sur la timeline</h2>
       <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13px]">
         <dt class="font-medium">Double-clic</dt><dd class="text-muted">sur un élément&nbsp;: le renommer</dd>

@@ -22,6 +22,25 @@ export function placeAt(pop: HTMLElement, x: number, y: number) {
   position(pop, () => [x, y])
 }
 
+/**
+ * Ouvre un popover près d'un rectangle (une bulle d'aide sur un élément) : dessous, dessus,
+ * à gauche ou à droite, la première place où il tient ; sinon par-dessus, au centre.
+ */
+export function placeNear(pop: HTMLElement, a: DOMRect) {
+  if (!pop.matches(':popover-open')) pop.showPopover()
+  const gap = 12
+  position(pop, (p) => {
+    const spots: [number, number, boolean][] = [
+      [a.left, a.bottom + gap, a.bottom + gap + p.height <= innerHeight - 8],
+      [a.left, a.top - p.height - gap, a.top - p.height - gap >= 8],
+      [a.left - p.width - gap, a.top, a.left - p.width - gap >= 8],
+      [a.right + gap, a.top, a.right + gap + p.width <= innerWidth - 8],
+    ]
+    const spot = spots.find(s => s[2])
+    return spot ? [spot[0], spot[1]] : [a.left + (a.width - p.width) / 2, a.top + (a.height - p.height) / 2]
+  })
+}
+
 // Mesure après affichage : le popover n'a pas encore de taille avant le premier rendu.
 function position(pop: HTMLElement, at: (p: DOMRect) => [number, number]) {
   pop.style.visibility = 'hidden'
@@ -32,8 +51,10 @@ function position(pop: HTMLElement, at: (p: DOMRect) => [number, number]) {
     pop.style.left = `${Math.max(gap, Math.min(left, innerWidth - p.width - gap))}px`
     pop.style.top = `${Math.max(gap, Math.min(top, innerHeight - p.height - gap))}px`
     pop.style.visibility = ''
-    // Un menu s'ouvre le focus sur sa première entrée ; Échap le ferme et rend le focus.
-    if (pop.role === 'menu') items(pop)[0]?.focus()
+    // Un menu s'ouvre le focus sur sa première entrée (Échap le ferme et rend le focus) ;
+    // un autre popover, sur son élément `autofocus`. Pas avant : masqué, il refuse le focus.
+    const first = pop.querySelector<HTMLElement>('[autofocus]') ?? (pop.role === 'menu' ? items(pop)[0] : null)
+    first?.focus()
   })
 }
 
