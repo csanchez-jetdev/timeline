@@ -22,8 +22,15 @@ const brokenDraft = ref<string | null>(null)
 const current = ref<string | null>(null)
 /** L'état de la dernière écriture dans le navigateur. */
 const saved = ref<'ok' | 'erreur'>('ok')
-/** Incrémenté à chaque création : le panneau place le curseur dans le premier champ. */
+/** Incrémenté à chaque création ou demande de renommage : le panneau place le curseur dans le premier champ. */
 const created = ref(0)
+let focused = 0
+/** Vrai une fois par demande : un panneau monté après la demande la traite encore. */
+const takeFocus = () => {
+  const pending = created.value !== focused
+  focused = created.value
+  return pending
+}
 /** Période figée pendant un geste, pour que l'échelle ne bouge pas sous le pointeur. */
 const frozenPeriod = ref<Periode | null>(null)
 /** L'échelle de la page dans le canevas : 1 = 100 %, la timeline à sa taille d'export. */
@@ -303,7 +310,7 @@ function loadFonts() {
 
 export function useTimeline() {
   return {
-    doc, selection, notice, brokenDraft, current, saved, created, frozenPeriod, zoom, replaced, canUndo, canRedo, fontsTick, slideLayout,
+    doc, selection, notice, brokenDraft, current, saved, created, takeFocus, frozenPeriod, zoom, replaced, canUndo, canRedo, fontsTick, slideLayout,
     measure, today, start, snapshot, change, beginTyping, typed, replace, undo, redo, selectedItem, clampDate, dayAfter,
     addProjet, addJalon, pushPhase, removeSelected, moveProjet, newTimeline, openNew, openId, openHash, openIncoming, openExample, createNew, recent,
     loadFonts, styleThumb, thumb,

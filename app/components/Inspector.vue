@@ -21,11 +21,17 @@ const jalon = computed(() => (kind.value === 'jalon' ? (tl.selectedItem() as Jal
 const parent = computed(() => (selection.value ? doc.value.projets[selection.value.projet] : undefined))
 const select = (projet: number) => { selection.value = { kind: 'projet', projet, index: projet } }
 
+// Création ou double-clic : le curseur va dans le nom, texte sélectionné pour être remplacé en tapant.
 const panel = ref<HTMLElement>()
-watch(tl.created, async () => {
+async function focusFirst() {
+  if (!tl.takeFocus()) return
   await nextTick()
-  panel.value?.querySelector<HTMLElement>('[data-first]')?.focus()
-})
+  const field = panel.value?.querySelector<HTMLInputElement>('[data-first]')
+  field?.focus()
+  field?.select()
+}
+watch(tl.created, focusFirst)
+onMounted(focusFirst)
 const closeButton = ref<HTMLButtonElement>()
 defineExpose({ focusClose: () => closeButton.value?.focus() })
 
