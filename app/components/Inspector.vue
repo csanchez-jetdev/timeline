@@ -265,7 +265,8 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
                 <span class="flex items-center gap-1 text-xs text-muted group-hover:text-ink">Changer <ChevronDown :size="14" aria-hidden="true" /></span>
               </span>
             </button>
-            <div id="style-menu" popover class="menu w-[440px] p-3" @beforetoggle="place($event, 'left')" @toggle="styleOpen = ($event as ToggleEvent).newState === 'open'">
+            <!-- Les vignettes se montent avant l'ouverture : place() mesure le menu rempli. -->
+            <div id="style-menu" popover class="menu max-h-[calc(100dvh-16px)] w-[440px] overflow-y-auto p-3" @beforetoggle="styleOpen = ($event as ToggleEvent).newState === 'open'; place($event, 'left')">
               <StylePicker v-if="styleOpen" :model-value="style" @update:model-value="setStyle" />
             </div>
           </div>
