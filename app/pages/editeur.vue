@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronDown, CircleAlert, Download, Eye, FileDown, Image as ImageIcon, Info, Link2, Maximize, Minus, PanelRightOpen, PenLine, Plus, Presentation, TriangleAlert, X } from '@lucide/vue'
+import { Check, ChevronDown, ChevronRight, CircleAlert, Download, Eye, FileDown, Image as ImageIcon, Info, LayoutList, Link2, Maximize, Minus, PanelRightOpen, PenLine, Plus, Presentation, TriangleAlert, X } from '@lucide/vue'
 import { ZOOM } from '~/composables/useTimeline'
 import { EXEMPLE } from '~/utils/exemples'
 import { downloadJson } from '~/utils/export'
@@ -179,7 +179,13 @@ function settings() {
         <BrandMark class="size-6" />
         <span class="max-sm:sr-only">Timeline</span>
       </NuxtLink>
-      <span class="h-5 w-px shrink-0 bg-line" aria-hidden="true" />
+      <nav aria-label="Fil d'Ariane" class="flex shrink-0 items-center gap-0.5">
+        <NuxtLink to="/timelines" class="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] text-muted hover:bg-wash hover:text-ink focus-visible:outline-2 focus-visible:outline-accent" title="Mes timelines">
+          <LayoutList :size="16" class="sm:hidden" aria-hidden="true" />
+          <span class="max-sm:sr-only">Mes timelines</span>
+        </NuxtLink>
+        <ChevronRight :size="14" class="shrink-0 text-line-strong" aria-hidden="true" />
+      </nav>
       <input
         class="min-w-0 flex-1 truncate rounded-md border border-transparent bg-transparent px-2 py-1 text-[15px] font-medium hover:border-line focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-accent/25 supports-[field-sizing:content]:flex-initial supports-[field-sizing:content]:field-sizing-content md:max-w-md"
         :value="doc.titre"
