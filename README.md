@@ -61,7 +61,7 @@ Tout tourne dans le navigateur : la mise en page, l'édition, les exports et l'e
 
 | Pour… | Ce que fait l'outil |
 |---|---|
-| Ne rien perdre entre deux visites | Un brouillon reste dans le `localStorage` du navigateur. |
+| Retrouver ses timelines | Chaque timeline reste dans le `localStorage` du navigateur, sur cet appareil, et la page Mes timelines les liste. Effacer les données du site les efface. |
 | Garder une version | Un fichier JSON, qui se rouvre, se versionne et se compare. |
 | Transmettre | Un lien qui contient toute la timeline, compressée dans le fragment (`#…`) de l'adresse. Le navigateur n'envoie jamais le fragment au serveur ([RFC 3986, §3.5](https://www.rfc-editor.org/rfc/rfc3986#section-3.5)). Toute personne qui reçoit le lien peut donc lire la timeline. |
 
@@ -140,10 +140,10 @@ Pour l'exemple « Refonte du portail client », le fragment `#t1=…` fait 866 c
 
 ```
 app/
-├── pages/                accueil, éditeur, pages d'exemple, nouveautés
+├── pages/                accueil, éditeur, mes timelines, pages d'exemple, nouveautés
 ├── components/           canevas, panneau de propriétés, export, aperçu de slide…
 ├── composables/
-│   └── useTimeline.ts    document, sélection, historique, brouillon
+│   └── useTimeline.ts    document, sélection, historique, enregistrement
 └── utils/
     ├── timeline.ts       schéma fermé et validation
     ├── layout.ts         mise en page : timeline vers scène de primitives
@@ -152,8 +152,9 @@ app/
     ├── export.ts         export PNG et PowerPoint
     ├── nouveautes.ts     le journal des nouveautés, une entrée par version
     ├── share.ts          encodage du lien de partage
+    ├── store.ts          les timelines gardées dans le navigateur
     └── exemples.ts       les exemples des pages publiques
-scripts/check.ts          contrôles du modèle, de la mise en page et du lien
+scripts/check.ts          contrôles du modèle, de la mise en page, des nouveautés, du lien et du stockage
 ```
 
 Les modules de `app/utils` s'importent entre eux par chemin relatif, sans auto-import : ils s'exécutent aussi hors de Nuxt, ce qui permet à `scripts/check.ts` de tourner sans navigateur.
@@ -174,7 +175,7 @@ pnpm dev          # http://localhost:3000
 | `pnpm dev` | Serveur de développement. |
 | `pnpm generate` | Site statique dans `.output/public`. |
 | `pnpm preview` | Sert le build localement. |
-| `pnpm check` | Contrôles sans navigateur : modèle, contrastes de chaque style, mise en page, journal des nouveautés, aller-retour du lien. |
+| `pnpm check` | Contrôles sans navigateur : modèle, contrastes de chaque style, mise en page, journal des nouveautés, aller-retour du lien, stockage. |
 
 ### Héberger votre instance
 

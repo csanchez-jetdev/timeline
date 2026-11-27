@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { Plus } from '@lucide/vue'
 import { ZOOM } from '~/composables/useTimeline'
 import { layout, type ItemRef as Sel } from '~/utils/layout'
 import { svgInner } from '~/utils/svg'
+import type { MenuTarget } from '~/components/ContextMenu.vue'
 import { track } from '~/utils/track'
 import { ddmmyyyy, fromDay, toDay } from '~/utils/timeline'
 
@@ -10,8 +12,9 @@ import { ddmmyyyy, fromDay, toDay } from '~/utils/timeline'
  * ce qu'on modifie est ce qu'on exporte. Le zoom l'agrandit en entier, texte
  * compris ; molette, deux doigts, glisser le fond ou Espace + glisser la déplacent.
  * Sur la page : clic pour sélectionner, glisser un jalon ou une phase pour changer
- * ses dates, glisser sur une ligne vide pour dessiner une phase, double-clic pour
- * poser un jalon.
+ * ses dates, glisser sur une ligne vide pour dessiner une phase, double-clic sur un
+ * élément pour le renommer, ailleurs sur une ligne pour poser un jalon. Sous le
+ * dernier projet, une ligne « Ajouter un projet » qui n'existe que dans l'éditeur.
  */
 // Les marges que laissent le rail, le panneau et la pastille qui flottent au-dessus :
 // la zone libre, où la page s'ajuste et se centre.
@@ -28,7 +31,7 @@ const pad = computed(() => ({ x: Math.round(view.value.w / 2), y: Math.round(vie
 
 const l = computed(() => {
   void tl.fontsTick.value
-  return layout(doc.value, { measure: tl.measure, period: tl.period(), today: tl.today })
+  return layout(doc.value, { measure: tl.measure, period: tl.period(), today: tl.today, addRow: true })
 })
 const html = computed(() => svgInner(l.value, { interactive: true, selected: selection.value }))
 
@@ -69,7 +72,7 @@ async function fit() {
   box.scrollTop = pad.value.y + (l.value.height * zoom.value) / 2 - (f.y + f.h / 2)
 }
 watch(tl.replaced, () => fit())
-defineExpose({ fit, zoomTo, zoomBy })
+defineExpose({ fit, zoomTo, zoomBy, menuOnSelection: () => menuOnSelection() })
 
 const local = (e: { clientX: number, clientY: number }) => {
   const r = scroller.value!.getBoundingClientRect()
@@ -193,7 +196,8 @@ const scrollLeft = ref(0)
 // Toute la cellule d'un projet le sélectionne, pas seulement les lettres de son nom.
 const selectRow = (row: number) => { selection.value = row >= 0 ? { kind: 'projet', projet: row, index: row } : null }
 // La colonne épinglée commence sous le titre dessiné dans l'image (y0), à l'échelle du zoom.
-const pick = (e: MouseEvent) => selectRow(rowAt((e.clientY - (e.currentTarget as Element).getBoundingClientRect().top) / zoom.value + l.value.y0))
+const columnRow = (e: MouseEvent) => rowAt((e.clientY - (e.currentTarget as Element).getBoundingClientRect().top) / zoom.value + l.value.y0)
+const pick = (e: MouseEvent) => selectRow(columnRow(e))
 const columnHeight = computed(() => l.value.rows.at(-1)?.bottom ?? 0)
 // La colonne des projets reste visible quand la moitié de la vraie colonne passe sous le rail, tant
 // qu'elle ne prend pas plus du quart du canevas (au-delà, le zoom la rendrait envahissante).
@@ -226,6 +230,7 @@ function phaseMode(ref: Sel, x: number): 'move' | 'start' | 'end' {
 
 function down(e: PointerEvent) {
   if (e.button !== 0) return
+  pressStart(e, targetAt(e))
   const p = point(e)
   const ref = refOf(e.target)
   if (ref) selection.value = ref
@@ -258,6 +263,7 @@ function hover(e: PointerEvent) {
 }
 
 function move(e: PointerEvent) {
+  pressEnd(e)
   if (!drag) return hover(e)
   const p = point(e)
   if (!drag.moved) {
@@ -306,6 +312,10 @@ function move(e: PointerEvent) {
 }
 
 function up(e: PointerEvent) {
+  if (press) {
+    clearTimeout(press.timer)
+    press = null
+  }
   if (drag?.kind === 'create' && !drag.moved) selection.value = null
   if (drag?.moved) {
     if (drag.kind === 'create') track('phase_ajoutee', { depuis: 'glisser' })
@@ -318,13 +328,74 @@ function up(e: PointerEvent) {
   if (svg.value?.hasPointerCapture(e.pointerId)) svg.value.releasePointerCapture(e.pointerId)
 }
 
-// Double-clic sur une ligne, y compris sur une phase : un jalon à cette date.
-function dbl(e: MouseEvent) {
+/**
+ * Ce que vise un point de la page : un élément, le nom d'un projet (toute sa cellule), ou une
+ * partie vide d'une ligne. Lu sous le pointeur au moment du geste : un premier clic a pu
+ * sélectionner, donc redessiner la page, et la cible d'origine n'est plus là.
+ */
+function targetAt(e: MouseEvent): MenuTarget | null {
   const p = point(e)
+  const ref = refOf(document.elementFromPoint(e.clientX, e.clientY))
   const row = rowAt(p.y)
-  if (row < 0 || !inAxis(p.x) || refOf(e.target)?.kind === 'jalon') return
-  tl.addJalon(row, l.value.dateAt(p.x))
+  if (ref) return { kind: 'element', ref }
+  if (row >= 0 && p.x < l.value.x0) return { kind: 'element', ref: { kind: 'projet', projet: row, index: row } }
+  if (row >= 0 && inAxis(p.x)) return { kind: 'row', row, date: l.value.dateAt(p.x) }
+  return null
+}
+const projetTarget = (row: number): MenuTarget | null => (row >= 0 ? { kind: 'element', ref: { kind: 'projet', projet: row, index: row } } : null)
+
+/** Sélectionne l'élément et place le curseur dans son nom, dans le panneau. */
+function rename(ref: Sel) {
+  selection.value = ref
+  tl.created.value++
+  track('renommer', { element: ref.kind, depuis: 'double_clic' })
+}
+// Double-clic sur une phase, un jalon ou le nom d'un projet : le renommer. Ailleurs sur une ligne : un jalon à cette date.
+function dblOn(t: MenuTarget | null) {
+  if (t?.kind === 'element') return rename(t.ref)
+  if (!t) return
+  tl.addJalon(t.row, t.date)
   track('jalon_ajoute', { depuis: 'double_clic' })
+}
+
+// --- Menu contextuel : clic droit, appui long, touche Menu ---
+
+const contextMenu = ref<{ open: (t: MenuTarget, x: number, y: number) => void }>()
+// Ailleurs que sur un élément ou une ligne, le menu du navigateur reste.
+function context(e: MouseEvent, t: MenuTarget | null) {
+  // Un appui long vient d'ouvrir le menu : Android émet aussi contextmenu.
+  if (performance.now() - pressedAt < 1000) return e.preventDefault()
+  if (!t) return
+  e.preventDefault()
+  contextMenu.value?.open(t, e.clientX, e.clientY)
+}
+let press: { timer: ReturnType<typeof setTimeout>, x: number, y: number } | null = null
+let pressedAt = 0
+function pressStart(e: PointerEvent, t: MenuTarget | null) {
+  if (e.pointerType !== 'touch' || !t) return
+  const { clientX: x, clientY: y, pointerId } = e
+  press = { x, y, timer: setTimeout(() => {
+    press = null
+    // Le doigt n'a pas bougé : rien n'a changé, le geste en cours s'abandonne.
+    drag = null
+    frozenPeriod.value = null
+    if (svg.value?.hasPointerCapture(pointerId)) svg.value.releasePointerCapture(pointerId)
+    pressedAt = performance.now()
+    contextMenu.value?.open(t, x, y)
+  }, 500) }
+}
+function pressEnd(e?: PointerEvent) {
+  if (!press || (e && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 8)) return
+  clearTimeout(press.timer)
+  press = null
+}
+/** La touche Menu ou Maj+F10 : le menu de l'élément sélectionné, sous son dessin. */
+function menuOnSelection() {
+  const s = selection.value
+  if (!s) return
+  const el = svg.value?.querySelector(`[data-kind="${s.kind}"][data-projet="${s.projet}"][data-index="${s.index}"]`)
+  const r = (el ?? svg.value!).getBoundingClientRect()
+  contextMenu.value?.open({ kind: 'element', ref: s }, r.left, r.bottom + 4)
 }
 </script>
 
@@ -342,11 +413,11 @@ function dbl(e: MouseEvent) {
     @wheel="wheel"
     @scroll="scrollLeft = scroller!.scrollLeft"
   >
-    <div ref="content" class="w-max" :style="{ padding: `${pad.y}px ${pad.x}px` }">
+    <div ref="content" class="relative w-max" :style="{ padding: `${pad.y}px ${pad.x}px` }">
       <!-- eslint-disable-next-line vue/no-v-html : balisage produit par svgInner, textes échappés -->
       <svg
         ref="svg"
-        class="timeline block select-none shadow-(--shadow-float)"
+        class="timeline block select-none shadow-(--shadow-float) [-webkit-touch-callout:none]"
         :viewBox="`0 0 ${l.width} ${l.height}`"
         :width="l.width * zoom"
         :height="l.height * zoom"
@@ -357,9 +428,28 @@ function dbl(e: MouseEvent) {
         @pointermove="move"
         @pointerup="up"
         @pointercancel="up"
-        @dblclick="dbl"
+        @dblclick="dblOn(targetAt($event))"
+        @contextmenu="context($event, targetAt($event))"
         v-html="html"
       />
+      <!-- La ligne d'ajout, à l'échelle de la page : dessinée hors de la scène, elle ne sort dans aucun export. -->
+      <button
+        v-if="l.addRow"
+        class="add-row absolute flex origin-top-left items-center gap-2 rounded-lg border border-dashed px-4 text-[15px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        :style="{
+          left: `${pad.x + 12 * zoom}px`,
+          top: `${pad.y + (l.addRow.top + 6) * zoom}px`,
+          width: `${l.width - 24}px`,
+          height: `${l.addRow.bottom - l.addRow.top - 12}px`,
+          transform: `scale(${zoom})`,
+          color: l.palette.muted,
+          '--row-ink': l.palette.ink,
+        }"
+        type="button"
+        @click="tl.addProjet()"
+      >
+        <Plus :size="16" aria-hidden="true" /> Ajouter un projet
+      </button>
     </div>
     <!-- La colonne des projets, le même dessin cadré sur ses premiers pixels : elle reste en place
          quand la page défile vers la gauche, depuis le bord du canevas, sous le rail. -->
@@ -377,6 +467,8 @@ function dbl(e: MouseEvent) {
         :style="{ cursor: panning ? 'grabbing' : space ? 'grab' : 'pointer' }"
         aria-hidden="true"
         @click="pick"
+        @dblclick="dblOn(projetTarget(columnRow($event)))"
+        @contextmenu="context($event, projetTarget(columnRow($event)))"
         v-html="html"
       />
     </div>
@@ -387,11 +479,15 @@ function dbl(e: MouseEvent) {
     >
       {{ tip.text }}
     </div>
+    <ContextMenu ref="contextMenu" />
   </div>
 </template>
 
 <style>
 .timeline .sel { filter: drop-shadow(0 0 1.5px #cf4329) drop-shadow(0 0 3px rgb(207 67 41 / 0.7)); }
+/* Les couleurs viennent de la palette de la timeline, adaptée à son fond. */
+.add-row { border-color: color-mix(in srgb, currentColor 45%, transparent); }
+.add-row:hover { border-color: currentColor; color: var(--row-ink); }
 /* Des points tous les 20 px, qui suivent le défilement. */
 .canvas-ground {
   background-color: var(--color-ground);

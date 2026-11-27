@@ -9,17 +9,63 @@ export function place(e: Event, side: 'right' | 'left' | 'below-end' | 'above-en
   const anchor = document.querySelector<HTMLElement>(`[popovertarget="${pop.id}"]`)
   if (!anchor) return
   const a = anchor.getBoundingClientRect()
+  const gap = 8
+  position(pop, p => [
+    side === 'right' ? a.right + gap : side === 'left' ? a.left - p.width - gap : a.right - p.width,
+    side === 'right' || side === 'left' ? a.top : side === 'below-end' ? a.bottom + gap : a.top - p.height - gap,
+  ])
+}
+
+/** Ouvre un popover au point (x, y) de la fenêtre, sans qu'il en déborde : un menu contextuel. */
+export function placeAt(pop: HTMLElement, x: number, y: number) {
+  pop.showPopover()
+  position(pop, () => [x, y])
+}
+
+/**
+ * Ouvre un popover près d'un rectangle (une bulle d'aide sur un élément) : dessous, dessus,
+ * à gauche ou à droite, la première place où il tient ; sinon par-dessus, au centre.
+ */
+export function placeNear(pop: HTMLElement, a: DOMRect) {
+  if (!pop.matches(':popover-open')) pop.showPopover()
+  const gap = 12
+  position(pop, (p) => {
+    const spots: [number, number, boolean][] = [
+      [a.left, a.bottom + gap, a.bottom + gap + p.height <= innerHeight - 8],
+      [a.left, a.top - p.height - gap, a.top - p.height - gap >= 8],
+      [a.left - p.width - gap, a.top, a.left - p.width - gap >= 8],
+      [a.right + gap, a.top, a.right + gap + p.width <= innerWidth - 8],
+    ]
+    const spot = spots.find(s => s[2])
+    return spot ? [spot[0], spot[1]] : [a.left + (a.width - p.width) / 2, a.top + (a.height - p.height) / 2]
+  })
+}
+
+// Mesure après affichage : le popover n'a pas encore de taille avant le premier rendu.
+function position(pop: HTMLElement, at: (p: DOMRect) => [number, number]) {
   pop.style.visibility = 'hidden'
-  // Mesure après affichage : le popover n'a pas encore de taille avant le premier rendu.
   requestAnimationFrame(() => {
     const p = pop.getBoundingClientRect()
     const gap = 8
-    let left = side === 'right' ? a.right + gap : side === 'left' ? a.left - p.width - gap : a.right - p.width
-    let top = side === 'right' || side === 'left' ? a.top : side === 'below-end' ? a.bottom + gap : a.top - p.height - gap
-    left = Math.max(gap, Math.min(left, innerWidth - p.width - gap))
-    top = Math.max(gap, Math.min(top, innerHeight - p.height - gap))
-    pop.style.left = `${left}px`
-    pop.style.top = `${top}px`
+    const [left, top] = at(p)
+    pop.style.left = `${Math.max(gap, Math.min(left, innerWidth - p.width - gap))}px`
+    pop.style.top = `${Math.max(gap, Math.min(top, innerHeight - p.height - gap))}px`
     pop.style.visibility = ''
+    // Un menu s'ouvre le focus sur sa première entrée (Échap le ferme et rend le focus) ;
+    // un autre popover, sur son élément `autofocus`. Pas avant : masqué, il refuse le focus.
+    const first = pop.querySelector<HTMLElement>('[autofocus]') ?? (pop.role === 'menu' ? items(pop)[0] : null)
+    first?.focus()
   })
+}
+
+const items = (menu: HTMLElement) => [...menu.querySelectorAll<HTMLElement>('[role^="menuitem"]:not(:disabled)')]
+
+/** Dans un menu (`@keydown="menuKeys"`) : flèches haut et bas, Début, Fin. */
+export function menuKeys(e: KeyboardEvent) {
+  const all = items(e.currentTarget as HTMLElement)
+  const i = all.indexOf(document.activeElement as HTMLElement)
+  const next = ({ ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: all.length - 1 } as Record<string, number>)[e.key]
+  if (next === undefined) return
+  e.preventDefault()
+  all[(next + all.length) % all.length]?.focus()
 }

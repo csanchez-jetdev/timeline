@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ArrowRight } from '@lucide/vue'
 import { EXEMPLES } from '~/utils/exemples'
+import type { Entry } from '~/utils/store'
 import { track } from '~/utils/track'
 
 useSeoMeta({
@@ -9,8 +11,9 @@ useSeoMeta({
 
 const tl = useTimeline()
 const roadmap = EXEMPLES.find(e => e.slug === 'roadmap-produit')!
-const draft = ref<string | null>(null)
-onMounted(() => { draft.value = tl.draftTitle() })
+// Les timelines de ce navigateur ne se lisent qu'après le rendu : la page est prérendue.
+const recent = ref<Entry[]>([])
+onMounted(() => { recent.value = tl.recent().slice(0, 3) })
 
 function create() {
   tl.createNew()
@@ -39,11 +42,17 @@ const GESTES = [
         </p>
         <div class="mt-8 flex flex-wrap items-center gap-3">
           <button class="btn btn-primary h-11 px-5 text-[15px]" type="button" @click="create">Créer une timeline</button>
-          <NuxtLink v-if="draft" to="/editeur" class="btn h-11 max-w-full px-5 text-[15px]" @click="track('brouillon_repris')">
-            <span class="truncate">Reprendre « {{ draft }} »</span>
+        </div>
+        <div v-if="recent.length" class="mt-5 flex flex-wrap items-center gap-2" role="group" aria-labelledby="reprendre">
+          <span id="reprendre" class="mr-1 text-sm text-muted">Reprendre</span>
+          <NuxtLink v-for="e in recent" :key="e.id" :to="`/editeur?id=${e.id}`" class="btn max-w-64" @click="track('timeline_reprise')">
+            <span class="truncate">{{ e.titre }}</span>
+          </NuxtLink>
+          <NuxtLink to="/timelines" class="btn btn-quiet text-muted hover:text-ink">
+            Toutes vos timelines <ArrowRight :size="15" aria-hidden="true" />
           </NuxtLink>
         </div>
-        <p class="mt-4 text-sm text-muted">Sans compte ni installation. La timeline reste dans votre navigateur.</p>
+        <p class="mt-4 text-sm text-muted">Sans compte ni installation. Vos timelines restent dans votre navigateur.</p>
 
         <TimelineView class="mt-12" :timeline="roadmap.timeline" reveal />
       </section>
@@ -74,8 +83,8 @@ const GESTES = [
         <div class="mx-auto grid max-w-6xl gap-6 px-5 py-14 sm:px-8 md:grid-cols-[1fr_2fr]">
           <h2 class="font-display text-2xl font-bold tracking-[-0.01em]">Rien ne passe par un serveur</h2>
           <div class="flex max-w-2xl flex-col gap-3 leading-relaxed text-muted">
-            <p>L'outil fonctionne entièrement dans votre navigateur. Votre travail en cours y reste enregistré d'une visite à l'autre.</p>
-            <p>Pour garder une timeline, enregistrez-la en fichier JSON. Pour la transmettre, copiez son lien : il contient toute la timeline, compressée dans la partie de l'adresse que le navigateur n'envoie jamais au serveur. Toute personne qui reçoit le lien peut donc la lire.</p>
+            <p>L'outil fonctionne entièrement dans votre navigateur. Vos timelines y restent enregistrées d'une visite à l'autre, sur cet appareil.</p>
+            <p>Pour en garder une copie ailleurs, téléchargez son fichier JSON. Pour la transmettre, copiez son lien : il contient toute la timeline, compressée dans la partie de l'adresse que le navigateur n'envoie jamais au serveur. Toute personne qui reçoit le lien peut donc la lire.</p>
           </div>
         </div>
       </section>

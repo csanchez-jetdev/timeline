@@ -41,7 +41,12 @@ export interface Layout {
   x: (date: string, f?: number) => number
   /** Date du jour sous une abscisse, bornée à la période. */
   dateAt: (px: number) => string
+  /** La place de la ligne « Ajouter un projet », si `addRow` l'a demandée. */
+  addRow?: { top: number, bottom: number }
 }
+
+/** Hauteur de la ligne « Ajouter un projet » de l'éditeur. */
+export const ADD_ROW = 48
 
 // Géométrie en px d'une image de 1 600 px de large : une slide 16:9 fait 960 pt,
 // donc 1 px vaut 0,6 pt en pleine largeur.
@@ -98,7 +103,8 @@ function shift(p: Prim, dy: number): Prim {
 }
 
 /** `today` : la date du jour (AAAA-MM-JJ), pour le repère « aujourd'hui » ; passée par l'appelant, la fonction reste pure. */
-export function layout(t: Timeline, opts: { measure: Measure, width?: number, style?: Style, period?: Periode, today?: string }): Layout {
+/** `addRow` : l'éditeur réserve, sous le dernier projet et avant la légende, la place de sa ligne « Ajouter un projet » ; les exports ne la demandent pas. */
+export function layout(t: Timeline, opts: { measure: Measure, width?: number, style?: Style, period?: Periode, today?: string, addRow?: boolean }): Layout {
   const def = STYLE_DEFS[opts.style ?? t.style ?? 'tableau']
   const { fonts, grid } = def
   const background = t.fond ?? '#ffffff'
@@ -429,10 +435,13 @@ export function layout(t: Timeline, opts: { measure: Measure, width?: number, st
     if (same) same.label += `, ${t.libelles?.[k] ?? typeLabel(t, k).toLowerCase()}`
     else legend.push({ type: k, label: typeLabel(t, k) })
   }
-  let height = top + 10
+  // La ligne d'ajout reste hors de la grille et du repère du jour : seule la légende descend.
+  const addRow = opts.addRow ? { top, bottom: top + ADD_ROW } : undefined
+  const below = addRow?.bottom ?? top
+  let height = below + 10
   if (show.legende && (legend.length || today)) {
     let lx = 20
-    const ly = top + 26
+    const ly = below + 26
     for (const { type, label } of legend) {
       marks.push(mark(lx, ly - 5, 9, type))
       texts.push(text(lx + 16, ly, label, { size: FONT, weight: 400, color: c.ink }))
@@ -475,6 +484,7 @@ export function layout(t: Timeline, opts: { measure: Measure, width?: number, st
     palette: c,
     x,
     dateAt,
+    addRow: addRow && { top: addRow.top + y0, bottom: addRow.bottom + y0 },
   }
 }
 

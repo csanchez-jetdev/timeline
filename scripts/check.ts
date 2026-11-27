@@ -1,5 +1,5 @@
 /**
- * Contrôles du modèle, du lien et de la mise en page, sans navigateur :
+ * Contrôles du modèle, du lien, de la mise en page et du stockage, sans navigateur :
  *
  *   node scripts/check.ts
  *
@@ -9,6 +9,7 @@ import assert from 'node:assert/strict'
 import { layout, SLIDE_WIDTH } from '../app/utils/layout.ts'
 import { decodeTimeline, encodeTimeline, HASH_PREFIX } from '../app/utils/share.ts'
 import { contrast } from '../app/utils/styles.ts'
+import { create, DRAFT_KEY, list, load, migrate, remove, save } from '../app/utils/store.ts'
 import { sameRef } from '../app/utils/svg.ts'
 import { EXEMPLE, EXEMPLES } from '../app/utils/exemples.ts'
 import { NOUVEAUTES } from '../app/utils/nouveautes.ts'
@@ -187,4 +188,39 @@ console.log('mise en page : ok')
     await assert.rejects(decodeTimeline(bad), TimelineError)
   }
   console.log(`lien : ok (exemple ${HASH_PREFIX.length + payload.length} caractères, ${grand.projets.length} projets ${(await encodeTimeline(grand)).length})`)
+}
+
+// Le stockage du navigateur : l'ancien brouillon est repris tel quel, un index illisible
+// se reconstruit, la plus récente vient en tête, une écriture refusée lève une erreur.
+{
+  const memory = (quota = Infinity) => {
+    const m = new Map<string, string>()
+    return {
+      get length() { return m.size },
+      key: (i: number) => [...m.keys()][i] ?? null,
+      getItem: (k: string) => m.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        if ([...m.values()].join('').length + v.length - (m.get(k)?.length ?? 0) > quota) throw new DOMException('quota', 'QuotaExceededError')
+        m.set(k, v)
+      },
+      removeItem: (k: string) => { m.delete(k) },
+    }
+  }
+  const s = memory()
+  assert.equal(migrate(s), null)
+  s.setItem(DRAFT_KEY, '{"titre":"Brouillon", "projets": [')
+  const ancien = migrate(s)!
+  assert.equal(s.getItem(DRAFT_KEY), null)
+  assert.equal(load(s, ancien), '{"titre":"Brouillon", "projets": [')
+  const a = create(s, { ...clone(EXEMPLE), titre: 'A' }, 2)
+  const b = create(s, { ...clone(EXEMPLE), titre: 'B' }, 1)
+  assert.deepEqual(list(s).map(e => e.titre), ['Sans titre', 'A', 'B'])
+  save(s, b, { ...clone(EXEMPLE), titre: 'B modifiée' }, Date.now() + 1)
+  assert.deepEqual(list(s).map(e => e.titre), ['B modifiée', 'Sans titre', 'A'])
+  s.setItem('timeline:index', '{oups')
+  assert.deepEqual(list(s).map(e => e.id).sort(), [a, b, ancien].sort())
+  remove(s, a)
+  assert.deepEqual(list(s).map(e => e.id).sort(), [b, ancien].sort())
+  assert.throws(() => create(memory(100), clone(EXEMPLE)), /quota/)
+  console.log('stockage : ok')
 }
