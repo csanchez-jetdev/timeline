@@ -149,6 +149,7 @@ const EXPORTS = [
 ] as const
 const closeMenu = () => document.getElementById('export-menu')?.hidePopover()
 const jsonDialog = ref<{ open: () => void }>()
+const tour = ref<{ start: () => void }>()
 // Les boutons de zoom ; la molette et le pincement, trop bavards, ne remontent pas.
 function zoomClick(e: MouseEvent) {
   const b = (e.target as Element).closest('button')
@@ -232,6 +233,7 @@ function settings() {
     <main class="relative min-h-0 flex-1">
       <!-- Le canevas reste monté pendant l'aperçu : on y revient avec le même zoom, au même endroit. -->
       <TimelineCanvas ref="canvas" class="absolute inset-0" :inset="inset" :inert="mode === 'apercu' || undefined" />
+      <EditorTour ref="tour" :wide="wide" :editing="mode === 'modifier'" />
 
       <SlidePreview v-if="mode === 'apercu'" class="absolute inset-0 bg-ground" />
       <template v-else>
@@ -243,6 +245,7 @@ function settings() {
           @save="saveFile"
           @json="jsonDialog!.open()"
           @settings="settings"
+          @tour="tour!.start()"
         />
 
         <Inspector
