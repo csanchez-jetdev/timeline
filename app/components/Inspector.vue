@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2, X } from '@lucide/vue'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, PanelRightClose, Plus, Trash2, X } from '@lucide/vue'
 import { place } from '~/utils/popover'
 import { dayScale, markPrim } from '~/utils/layout'
 import { markStyle, STYLE_DEFS, THUMB_FRAME } from '~/utils/styles'
@@ -26,6 +26,8 @@ watch(tl.created, async () => {
   await nextTick()
   panel.value?.querySelector<HTMLElement>('[data-first]')?.focus()
 })
+const closeButton = ref<HTMLButtonElement>()
+defineExpose({ focusClose: () => closeButton.value?.focus() })
 
 // Toutes les dates de la timeline : la période doit les contenir.
 const range = computed(() => {
@@ -128,7 +130,7 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
 </script>
 
 <template>
-  <aside ref="panel" class="float flex flex-col text-sm text-ink" aria-label="Propriétés" @change="changed">
+  <aside id="proprietes" ref="panel" class="float flex flex-col text-sm text-ink" aria-label="Propriétés" @change="changed">
     <header class="flex items-center gap-1 border-b border-line py-2 pr-2 pl-3">
       <nav aria-label="Élément sélectionné" class="flex min-w-0 flex-1 items-center gap-0.5 text-[13px]">
         <button v-if="kind" class="shrink-0 rounded-md px-1.5 py-1 text-muted hover:bg-wash hover:text-ink" type="button" @click="selection = null">Timeline</button>
@@ -142,8 +144,9 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
           <span class="truncate px-1.5 py-1 font-semibold" aria-current="true">{{ kind === 'projet' ? 'Projet' : kind === 'phase' ? 'Phase' : 'Jalon' }}</span>
         </template>
       </nav>
-      <button class="btn btn-icon size-8 md:hidden" type="button" aria-label="Masquer les propriétés" title="Masquer les propriétés" @click="emit('close')">
-        <X :size="18" :stroke-width="1.75" />
+      <button ref="closeButton" class="btn btn-icon size-8 shrink-0" type="button" aria-controls="proprietes" aria-expanded="true" aria-label="Masquer les propriétés" title="Masquer les propriétés" @click="emit('close')">
+        <PanelRightClose :size="18" :stroke-width="1.75" class="max-md:hidden" />
+        <X :size="18" :stroke-width="1.75" class="md:hidden" />
       </button>
     </header>
 
