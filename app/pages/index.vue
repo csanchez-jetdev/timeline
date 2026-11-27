@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { EXEMPLES } from '~/utils/exemples'
+import { track } from '~/utils/track'
 
 useSeoMeta({
   title: 'Timeline : le planning du projet, sur une slide',
@@ -38,7 +39,7 @@ const GESTES = [
         </p>
         <div class="mt-8 flex flex-wrap items-center gap-3">
           <button class="btn btn-primary h-11 px-5 text-[15px]" type="button" @click="create">Créer une timeline</button>
-          <NuxtLink v-if="draft" to="/editeur" class="btn h-11 max-w-full px-5 text-[15px]">
+          <NuxtLink v-if="draft" to="/editeur" class="btn h-11 max-w-full px-5 text-[15px]" @click="track('brouillon_repris')">
             <span class="truncate">Reprendre « {{ draft }} »</span>
           </NuxtLink>
         </div>

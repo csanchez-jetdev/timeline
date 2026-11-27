@@ -3,6 +3,7 @@ import { Download, Image as ImageIcon, Presentation, X } from '@lucide/vue'
 import { exportPng, exportPptx, fileName } from '~/utils/export'
 import { layout, slideReadability } from '~/utils/layout'
 import { svgInner } from '~/utils/svg'
+import { shape, track } from '~/utils/track'
 import type { Style } from '~/utils/timeline'
 
 /* Format, style, aperçu exact de ce qui sera téléchargé. Rien ne se calcule tant que la boîte est fermée. */
@@ -35,18 +36,22 @@ function open() {
   error.value = ''
   isOpen.value = true
   dialog.value!.showModal()
+  track('export_ouvert', shape(doc.value))
 }
 async function run() {
   if (!preview.value) return
   busy.value = true
   error.value = ''
   const name = `${fileName(doc.value.titre)}-${style.value}`
+  const props = { ...shape(doc.value), format: format.value, style: style.value, style_timeline: doc.value.style ?? 'tableau', pt: Math.round(readability.value!.pt * 10) / 10 }
   try {
     if (format.value === 'png') await exportPng(preview.value, name)
     else await exportPptx(preview.value, doc.value, name)
+    track('export_telecharge', props)
     dialog.value!.close()
   }
   catch (err) {
+    track('export_erreur', { ...props, erreur: err instanceof Error ? err.name : 'inconnue' })
     error.value = `Export impossible : ${err instanceof Error ? err.message : String(err)}`
   }
   finally {

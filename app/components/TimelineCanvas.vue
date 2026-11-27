@@ -2,6 +2,7 @@
 import { ZOOM } from '~/composables/useTimeline'
 import { layout, type ItemRef as Sel } from '~/utils/layout'
 import { svgInner } from '~/utils/svg'
+import { track } from '~/utils/track'
 import { ddmmyyyy, fromDay, toDay } from '~/utils/timeline'
 
 /*
@@ -306,6 +307,11 @@ function move(e: PointerEvent) {
 
 function up(e: PointerEvent) {
   if (drag?.kind === 'create' && !drag.moved) selection.value = null
+  if (drag?.moved) {
+    if (drag.kind === 'create') track('phase_ajoutee', { depuis: 'glisser' })
+    else if (drag.kind === 'jalon') track('jalon_deplace')
+    else track('phase_glissee', { geste: drag.mode })
+  }
   drag = null
   tip.value = null
   frozenPeriod.value = null
@@ -318,6 +324,7 @@ function dbl(e: MouseEvent) {
   const row = rowAt(p.y)
   if (row < 0 || !inAxis(p.x) || refOf(e.target)?.kind === 'jalon') return
   tl.addJalon(row, l.value.dateAt(p.x))
+  track('jalon_ajoute', { depuis: 'double_clic' })
 }
 </script>
 

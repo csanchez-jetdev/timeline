@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Braces, CircleHelp, Download, FilePlus2, FolderOpen, Plus, Redo2, Save, SlidersHorizontal, Undo2, Upload } from '@lucide/vue'
 import { place } from '~/utils/popover'
+import { track } from '~/utils/track'
 
 /* Le rail d'outils : ajouter, annuler, fichier, réglages, aide. Icônes seules, nommées pour les lecteurs d'écran. */
 defineProps<{ horizontal?: boolean }>()
@@ -42,7 +43,7 @@ const close = (id: string) => document.getElementById(id)?.hidePopover()
       <button class="menu-item" type="button" role="menuitem" @click="close('file-menu'); emit('json')"><Braces :size="16" /> Modifier le JSON…</button>
     </div>
 
-    <div id="help" popover class="menu w-80 p-4" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')">
+    <div id="help" popover class="menu w-80 p-4" @beforetoggle="place($event, horizontal ? 'above-end' : 'right')" @toggle="($event as ToggleEvent).newState === 'open' && track('aide_ouverte')">
       <h2 class="mb-2 text-sm font-semibold">Sur la timeline</h2>
       <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13px]">
         <dt class="font-medium">Double-clic</dt><dd class="text-muted">sur une ligne : un jalon à cette date</dd>

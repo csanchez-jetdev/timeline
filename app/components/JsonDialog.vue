@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { X } from '@lucide/vue'
 import { normalizeTimeline } from '~/utils/timeline'
+import { shape, track } from '~/utils/track'
 
 /* La timeline en JSON, modifiable ; une erreur nomme le champ fautif. */
 const tl = useTimeline()
@@ -12,14 +13,17 @@ function open() {
   text.value = tl.brokenDraft.value ?? JSON.stringify(tl.doc.value, null, 2)
   error.value = ''
   dialog.value!.showModal()
+  track('json_ouvert', { brouillon_illisible: tl.brokenDraft.value ? 'oui' : 'non' })
 }
 function apply() {
   try {
     tl.replace(normalizeTimeline(JSON.parse(text.value)))
     tl.brokenDraft.value = null
+    track('json_applique', { resultat: 'ok', ...shape(tl.doc.value) })
     dialog.value!.close()
   }
   catch (err) {
+    track('json_applique', { resultat: err instanceof SyntaxError ? 'json_invalide' : 'schema_invalide' })
     error.value = err instanceof SyntaxError ? `JSON invalide : ${err.message}` : err instanceof Error ? err.message : String(err)
   }
 }

@@ -5,6 +5,7 @@ import { download, fileName } from '~/utils/export'
 import { slideReadability } from '~/utils/layout'
 import { place } from '~/utils/popover'
 import { encodeTimeline, HASH_PREFIX } from '~/utils/share'
+import { shape, track } from '~/utils/track'
 import { normalizeTimeline } from '~/utils/timeline'
 
 const tl = useTimeline()
@@ -23,6 +24,7 @@ onMounted(() => {
   window.addEventListener('keydown', keys)
   media = matchMedia('(min-width: 768px)')
   onMedia()
+  track('editeur_ouvert', shape(doc.value))
   // Sur petit écran, le panneau couvrirait la timeline : il s'ouvre à la sélection.
   panelOpen.value = wide.value
   media.addEventListener('change', onMedia)
@@ -35,6 +37,7 @@ onBeforeUnmount(() => {
 // Modifier : la timeline en plein cadre avec ses outils. Aperçu : la slide telle qu'elle sortira.
 const mode = ref<'modifier' | 'apercu'>('modifier')
 const MODES = [{ v: 'modifier', label: 'Modifier', icon: PenLine }, { v: 'apercu', label: 'Aperçu', icon: Eye }] as const
+watch(mode, m => track('mode_change', { mode: m }))
 const panelOpen = ref(true)
 watch(selection, (s) => { if (s) panelOpen.value = true })
 const RAIL = 50, PANEL = 320, EDGE = 12, GAP = 16
@@ -46,10 +49,10 @@ function keys(e: KeyboardEvent) {
   const inField = !!(e.target as HTMLElement).closest('input, textarea, select')
   const mod = e.ctrlKey || e.metaKey
   if (inField || mode.value === 'apercu' || document.querySelector('dialog[open], :popover-open')) return
-  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) tl.redo(); else tl.undo() }
-  else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); tl.redo() }
-  else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); tl.removeSelected() }
-  else if (e.key === 'Escape') selection.value = null
+  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) tl.redo(); else tl.undo(); track('raccourci', { touche: e.shiftKey ? 'retablir' : 'annuler' }) }
+  else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); tl.redo(); track('raccourci', { touche: 'retablir' }) }
+  else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); tl.removeSelected(); track('raccourci', { touche: 'supprimer' }) }
+  else if (e.key === 'Escape') { selection.value = null; track('raccourci', { touche: 'echap' }) }
 }
 
 const warnings = computed(() => {
@@ -73,23 +76,29 @@ async function openFile(e: Event) {
   if (!file) return
   try {
     tl.replace(normalizeTimeline(JSON.parse(await file.text())))
+    track('fichier_ouvert', { resultat: 'ok', ...shape(doc.value) })
     notice.value = { tone: 'info', text: `${file.name} ouvert. Annuler (Ctrl+Z) rend la timeline d'avant.` }
   }
   catch (err) {
+    track('fichier_ouvert', { resultat: err instanceof SyntaxError ? 'json_invalide' : 'schema_invalide' })
     notice.value = { tone: 'error', text: `${file.name} : ${err instanceof SyntaxError ? `JSON invalide (${err.message})` : message(err)}` }
   }
 }
 function saveFile() {
+  track('fichier_enregistre', shape(doc.value))
   download(new Blob([`${JSON.stringify(doc.value, null, 2)}\n`], { type: 'application/json' }), `${fileName(doc.value.titre)}.json`)
 }
 
 async function share() {
   const url = `${location.origin}${location.pathname}${HASH_PREFIX}${await encodeTimeline(doc.value)}`
+  const props = { caracteres: url.length, ...shape(doc.value) }
   try {
     await navigator.clipboard.writeText(url)
+    track('lien_copie', { resultat: 'presse_papiers', ...props })
     notice.value = { tone: 'info', text: `Lien copié (${url.length} caractères). Il contient toute la timeline : toute personne qui le reçoit peut la lire.` }
   }
   catch {
+    track('lien_copie', { resultat: 'invite', ...props })
     window.prompt('Copiez le lien de la timeline', url)
   }
 }
@@ -97,6 +106,11 @@ async function share() {
 const canvas = ref<{ fit: () => void, zoomTo: (s: number) => void, zoomBy: (k: number) => void }>()
 const exportDialog = ref<{ open: () => void }>()
 const jsonDialog = ref<{ open: () => void }>()
+// Les boutons de zoom ; la molette et le pincement, trop bavards, ne remontent pas.
+function zoomClick(e: MouseEvent) {
+  const b = (e.target as Element).closest('button')
+  if (b) track('zoom', { bouton: b.title })
+}
 function settings() {
   selection.value = null
   panelOpen.value = true
@@ -117,7 +131,7 @@ function settings() {
         aria-label="Titre de la timeline"
         @focus="tl.beginTyping"
         @input="tl.typed(() => { doc.titre = ($event.target as HTMLInputElement).value })"
-        @change="doc.titre = doc.titre.trim() || 'Sans titre'"
+        @change="doc.titre = doc.titre.trim() || 'Sans titre'; track('champ_modifie', { element: 'timeline', champ: 'titre' })"
       >
       <div class="ml-auto flex shrink-0 items-center gap-1.5">
         <div class="flex rounded-lg bg-wash p-0.5" role="radiogroup" aria-label="Mode">
@@ -133,14 +147,14 @@ function settings() {
             <TriangleAlert :size="16" class="text-alert" />
             <span class="max-lg:sr-only">{{ warnings.length }} alerte{{ warnings.length > 1 ? 's' : '' }}</span>
           </button>
-          <div id="warnings" popover class="menu w-96 p-4" @beforetoggle="place($event, 'below-end')">
+          <div id="warnings" popover class="menu w-96 p-4" @beforetoggle="place($event, 'below-end')" @toggle="($event as ToggleEvent).newState === 'open' && track('alertes_vues', { alertes: warnings.length })">
             <h2 class="mb-2 text-sm font-semibold">Sur la slide exportée</h2>
             <ul class="flex flex-col gap-1.5 text-[13px] text-muted">
               <li v-for="w in warnings" :key="w">{{ w }}</li>
             </ul>
           </div>
         </template>
-        <button v-if="mode === 'modifier'" class="btn btn-icon max-md:hidden" type="button" :aria-pressed="panelOpen" aria-label="Propriétés" title="Propriétés" @click="panelOpen = !panelOpen">
+        <button v-if="mode === 'modifier'" class="btn btn-icon max-md:hidden" type="button" :aria-pressed="panelOpen" aria-label="Propriétés" title="Propriétés" @click="panelOpen = !panelOpen; track('panneau', { ouvert: panelOpen ? 'oui' : 'non' })">
           <PanelRight :size="18" :stroke-width="1.75" />
         </button>
         <button class="btn" type="button" @click="share"><Link2 :size="16" /><span class="max-sm:sr-only">Partager</span></button>
@@ -177,6 +191,7 @@ function settings() {
           :style="wide ? { right: `${panelOpen ? EDGE + PANEL + EDGE : EDGE}px` } : {}"
           role="group"
           aria-label="Zoom"
+          @click="zoomClick"
         >
           <button class="btn btn-icon size-8" type="button" :disabled="zoom <= ZOOM.min" aria-label="Dézoomer" title="Dézoomer" @click="canvas!.zoomBy(1 / 1.25)"><Minus :size="16" /></button>
           <button class="btn btn-quiet h-8 w-16 px-0 tabular-nums" type="button" :disabled="Math.round(zoom * 100) === 100" title="Revenir à 100 %" @click="canvas!.zoomTo(1)">{{ Math.round(zoom * 100) }} %</button>

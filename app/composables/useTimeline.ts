@@ -1,6 +1,7 @@
 import { layout, type Measure, type ItemRef as Sel } from '~/utils/layout'
 import { decodeTimeline, HASH_PREFIX } from '~/utils/share'
 import { svgInner } from '~/utils/svg'
+import { shape, track } from '~/utils/track'
 import { EXEMPLE } from '~/utils/exemples'
 import { bounds, endOfMonth, fromDay, normalizeTimeline, type Periode, type Style, type Timeline, toDay } from '~/utils/timeline'
 
@@ -65,6 +66,7 @@ function replace(t: Timeline) {
 function travel(from: string[], to: string[]) {
   const s = from.pop()
   if (!s) return
+  track(from === past ? 'annuler' : 'retablir')
   to.push(JSON.stringify(doc.value))
   doc.value = JSON.parse(s)
   if (!selectedItem()) selection.value = null
@@ -89,6 +91,7 @@ const dayAfter = (s: string) => fromDay(toDay(s) + 1)
 
 function addProjet() {
   change(t => t.projets.push({ nom: 'Nouveau projet', phases: [], jalons: [] }))
+  track('projet_ajoute')
   selection.value = { kind: 'projet', projet: doc.value.projets.length - 1, index: doc.value.projets.length - 1 }
   created.value++
 }
@@ -105,6 +108,7 @@ function pushPhase(projet: number, debut: string, fin: string) {
 function removeSelected() {
   const s = selection.value
   if (!s || !selectedItem()) return
+  track('element_supprime', { element: s.kind })
   change((t) => {
     if (s.kind === 'projet') t.projets.splice(s.projet, 1)
     else if (s.kind === 'phase') t.projets[s.projet]!.phases.splice(s.index, 1)
@@ -116,11 +120,13 @@ function moveProjet(from: number, delta: number) {
   const to = from + delta
   if (to < 0 || to >= doc.value.projets.length) return
   change(t => t.projets.splice(to, 0, t.projets.splice(from, 1)[0]!))
+  track('projet_deplace', { sens: delta < 0 ? 'haut' : 'bas' })
   selection.value = { kind: 'projet', projet: to, index: to }
 }
 function newTimeline() {
   const fin = endOfMonth(fromDay(toDay(`${today.slice(0, 7)}-01`) + 160))
   replace({ titre: 'Nouvelle timeline', periode: { debut: `${today.slice(0, 7)}-01`, fin }, projets: [{ nom: 'Projet 1', phases: [], jalons: [] }] })
+  track('nouvelle_timeline')
 }
 
 // Mesure du texte : celle du canvas, avec les polices de la page. Les mises en
@@ -155,9 +161,11 @@ async function loadHash() {
   if (!location.hash.startsWith(HASH_PREFIX)) return
   try {
     replace(await decodeTimeline(location.hash.slice(HASH_PREFIX.length)))
+    track('lien_ouvert', { resultat: 'ok', ...shape(doc.value) })
     notice.value = { tone: 'info', text: 'Timeline ouverte depuis un lien. Votre brouillon précédent revient avec Annuler (Ctrl+Z).' }
   }
   catch (err) {
+    track('lien_ouvert', { resultat: 'erreur' })
     notice.value = { tone: 'error', text: err instanceof Error ? err.message : String(err) }
   }
   // Le lien a servi : un rechargement doit rouvrir le brouillon, pas écraser les modifications.
@@ -174,6 +182,7 @@ function start() {
   if (raw) {
     try { doc.value = normalizeTimeline(JSON.parse(raw)) }
     catch (err) {
+      track('brouillon_illisible')
       brokenDraft.value = raw
       notice.value = { tone: 'error', text: `Brouillon illisible (${err instanceof Error ? err.message : err}) : son texte est dans le panneau JSON.` }
     }

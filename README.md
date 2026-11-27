@@ -179,7 +179,7 @@ pnpm dev          # http://localhost:3000
 
 Le contenu de `.output/public` se sert depuis n'importe quel hébergement statique.
 
-La mesure d'audience ([Rybbit](https://rybbit.com), sans cookie) reste désactivée tant qu'aucun identifiant de site n'est fourni au moment du `pnpm generate` (variables `NUXT_PUBLIC_RYBBIT_SITE_ID` et, pour une instance auto-hébergée, `NUXT_PUBLIC_RYBBIT_HOST`). Elle ne remonte que le chemin de la page, jamais le fragment qui porte la timeline.
+La mesure d'audience ([Rybbit](https://rybbit.com), sans cookie) reste désactivée tant qu'aucun identifiant de site n'est fourni au moment du `pnpm generate` (variables `NUXT_PUBLIC_RYBBIT_SITE_ID` et, pour une instance auto-hébergée, `NUXT_PUBLIC_RYBBIT_HOST`). Elle remonte le chemin de la page et des événements d'usage (l'action, des comptes de projets et de jalons, le style, le format d'export), jamais le contenu d'une timeline ni le fragment qui la porte.
 
 ## Licence
 

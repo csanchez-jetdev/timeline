@@ -4,6 +4,7 @@ import { place } from '~/utils/popover'
 import { dayScale, markPrim } from '~/utils/layout'
 import { markStyle, STYLE_DEFS, THUMB_FRAME } from '~/utils/styles'
 import { prim } from '~/utils/svg'
+import { track } from '~/utils/track'
 import { AFFICHAGE, type Affichage, bounds, COULEUR_LABELS, COULEURS, ddmmyyyy, type Forme, FORME_LABELS, FORMES, fromDay, isDate, type Jalon, type Marque, type Phase, type Projet, type Style, toDay, TYPE_LABELS, type TypeJalon, typeLabel, TYPES } from '~/utils/timeline'
 
 /* Les champs de l'élément sélectionné, ou de la timeline quand rien ne l'est. */
@@ -77,6 +78,7 @@ const p = computed(() => doc.value.periode)
 function addJalonHere() {
   const b = tl.period()
   tl.addJalon(selection.value!.projet, fromDay(Math.round((toDay(b.debut) + toDay(b.fin)) / 2)))
+  track('jalon_ajoute', { depuis: 'panneau' })
 }
 function addPhaseHere() {
   const projet = selection.value!.projet
@@ -84,8 +86,18 @@ function addPhaseHere() {
   tl.snapshot()
   tl.pushPhase(projet, debut, tl.clampDate(fromDay(toDay(debut) + 30)))
   tl.created.value++
+  track('phase_ajoutee', { depuis: 'panneau' })
 }
 const value = (e: Event) => (e.target as HTMLInputElement).value
+
+// Un champ modifié (attribut name) : sa valeur ne remonte que si elle vient d'une liste
+// fermée ou d'une case, jamais un texte ni une date saisis.
+function changed(e: Event) {
+  const el = e.target as HTMLInputElement
+  if (!el.name) return
+  const valeur = el.type === 'checkbox' ? (el.checked ? 'oui' : 'non') : el.type === 'radio' || el.tagName === 'SELECT' ? el.value : ''
+  track('champ_modifie', { element: kind.value ?? 'timeline', champ: el.name, ...(valeur && { valeur }) })
+}
 
 // Les types de jalon renommés pour cette timeline ; un champ vidé rend le libellé commun.
 function setLabel(k: TypeJalon, v: string) {
@@ -116,7 +128,7 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
 </script>
 
 <template>
-  <aside ref="panel" class="float flex flex-col text-sm text-ink" aria-label="Propriétés">
+  <aside ref="panel" class="float flex flex-col text-sm text-ink" aria-label="Propriétés" @change="changed">
     <header class="flex items-center gap-1 border-b border-line py-2 pr-2 pl-3">
       <nav aria-label="Élément sélectionné" class="flex min-w-0 flex-1 items-center gap-0.5 text-[13px]">
         <button v-if="kind" class="shrink-0 rounded-md px-1.5 py-1 text-muted hover:bg-wash hover:text-ink" type="button" @click="selection = null">Timeline</button>
@@ -139,20 +151,20 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
       <!-- Jalon -->
       <template v-if="jalon">
         <label class="field">Titre
-          <input data-first :value="jalon.titre ?? ''" placeholder="Trois ou quatre mots" @focus="tl.beginTyping" @input="tl.typed(() => { jalon!.titre = value($event) || undefined })">
+          <input data-first name="titre" :value="jalon.titre ?? ''" placeholder="Trois ou quatre mots" @focus="tl.beginTyping" @input="tl.typed(() => { jalon!.titre = value($event) || undefined })">
         </label>
         <div class="grid grid-cols-2 gap-3">
           <label class="field">Date
-            <input type="date" :value="jalon.date" :min="p?.debut" :max="p?.fin" @change="isDate(value($event)) && tl.change(() => { jalon!.date = tl.clampDate(value($event)) })">
+            <input type="date" name="date" :value="jalon.date" :min="p?.debut" :max="p?.fin" @change="isDate(value($event)) && tl.change(() => { jalon!.date = tl.clampDate(value($event)) })">
           </label>
           <label class="field">Type
-            <select :value="jalon.type" @change="tl.change(() => { jalon!.type = value($event) as Jalon['type'] })">
+            <select name="type" :value="jalon.type" @change="tl.change(() => { jalon!.type = value($event) as Jalon['type'] })">
               <option v-for="t in TYPES" :key="t" :value="t">{{ typeLabel(doc, t) }}</option>
             </select>
           </label>
         </div>
         <label class="field">Détail <span class="hint">Visible au survol et dans les notes du PowerPoint.</span>
-          <textarea rows="3" :value="jalon.detail ?? ''" @focus="tl.beginTyping" @input="tl.typed(() => { jalon!.detail = value($event) || undefined })" />
+          <textarea rows="3" name="detail" :value="jalon.detail ?? ''" @focus="tl.beginTyping" @input="tl.typed(() => { jalon!.detail = value($event) || undefined })" />
         </label>
         <button class="btn btn-danger" type="button" @click="tl.removeSelected()"><Trash2 :size="15" /> Supprimer le jalon</button>
       </template>
@@ -160,18 +172,18 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
       <!-- Phase -->
       <template v-else-if="phase">
         <label class="field">Nom
-          <input data-first :value="phase.nom" @focus="tl.beginTyping" @input="tl.typed(() => { phase!.nom = value($event) })">
+          <input data-first name="nom" :value="phase.nom" @focus="tl.beginTyping" @input="tl.typed(() => { phase!.nom = value($event) })">
         </label>
         <div class="grid grid-cols-2 gap-3">
           <label class="field">Début
-            <input type="date" :value="phase.debut" :min="p?.debut" :max="phase.fin ? fromDay(toDay(phase.fin) - 1) : p?.fin" @change="(e) => { const v = value(e); if (isDate(v) && (!phase!.fin || v < phase!.fin)) tl.change(() => { phase!.debut = tl.clampDate(v) }) }">
+            <input type="date" name="debut" :value="phase.debut" :min="p?.debut" :max="phase.fin ? fromDay(toDay(phase.fin) - 1) : p?.fin" @change="(e) => { const v = value(e); if (isDate(v) && (!phase!.fin || v < phase!.fin)) tl.change(() => { phase!.debut = tl.clampDate(v) }) }">
           </label>
           <label class="field">Fin
-            <input type="date" :value="phase.fin ?? ''" :disabled="!phase.fin" :min="tl.dayAfter(phase.debut)" :max="p?.fin" @change="(e) => { const v = value(e); if (isDate(v) && v > phase!.debut) tl.change(() => { phase!.fin = tl.clampDate(v) }) }">
+            <input type="date" name="fin" :value="phase.fin ?? ''" :disabled="!phase.fin" :min="tl.dayAfter(phase.debut)" :max="p?.fin" @change="(e) => { const v = value(e); if (isDate(v) && v > phase!.debut) tl.change(() => { phase!.fin = tl.clampDate(v) }) }">
           </label>
         </div>
         <label class="check">
-          <input type="checkbox" :checked="!phase.fin" @change="tl.change(() => { phase!.fin = phase!.fin ? undefined : tl.clampDate(fromDay(toDay(phase!.debut) + 30)) })">
+          <input type="checkbox" name="sans_fin" :checked="!phase.fin" @change="tl.change(() => { phase!.fin = phase!.fin ? undefined : tl.clampDate(fromDay(toDay(phase!.debut) + 30)) })">
           Jusqu'au bout de la période
         </label>
         <fieldset class="field">
@@ -190,10 +202,10 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
       <!-- Projet -->
       <template v-else-if="projet">
         <label class="field">Nom
-          <input data-first :value="projet.nom" @focus="tl.beginTyping" @input="tl.typed(() => { projet!.nom = value($event) })">
+          <input data-first name="nom" :value="projet.nom" @focus="tl.beginTyping" @input="tl.typed(() => { projet!.nom = value($event) })">
         </label>
         <label class="field">Code <span class="hint">Facultatif, par exemple P1.</span>
-          <input :value="projet.code ?? ''" @focus="tl.beginTyping" @input="tl.typed(() => { projet!.code = value($event) || undefined })">
+          <input name="code" :value="projet.code ?? ''" @focus="tl.beginTyping" @input="tl.typed(() => { projet!.code = value($event) || undefined })">
         </label>
         <div class="flex flex-wrap gap-2">
           <button class="btn" type="button" @click="addJalonHere"><Plus :size="15" /> Jalon</button>
@@ -209,7 +221,7 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
       <!-- Timeline -->
       <template v-else>
         <label class="field">Sous-titre <span class="hint">Sous le titre de la slide, et dans l'image si le titre y figure.</span>
-          <input :value="doc.sousTitre ?? ''" placeholder="Comité du 12 mars" @focus="tl.beginTyping" @input="tl.typed(() => { doc.sousTitre = value($event) || undefined })">
+          <input name="sous_titre" :value="doc.sousTitre ?? ''" placeholder="Comité du 12 mars" @focus="tl.beginTyping" @input="tl.typed(() => { doc.sousTitre = value($event) || undefined })">
         </label>
 
         <div class="field">
@@ -236,7 +248,7 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
               <span class="sr-only">{{ f.label }}</span>
             </label>
             <label class="swatch relative" title="Autre couleur" :class="{ 'ring-2': customFond }">
-              <input type="color" class="absolute inset-0 size-full cursor-pointer opacity-0" :value="fond" aria-label="Autre couleur de fond" @change="setFond(value($event))">
+              <input type="color" name="fond_libre" class="absolute inset-0 size-full cursor-pointer opacity-0" :value="fond" aria-label="Autre couleur de fond" @change="setFond(value($event))">
               <span class="grid place-items-center" :style="customFond ? { background: fond } : { background: 'conic-gradient(#cf4329, #e9b949, #3f7a52, #3d6e8c, #76578a, #cf4329)' }" />
             </label>
           </div>
@@ -244,12 +256,12 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
 
         <fieldset class="field gap-2">
           <legend class="mb-1.5">Dans l'image</legend>
-          <label class="check"><input type="checkbox" :checked="show.titre" @change="setShow('titre', ($event.target as HTMLInputElement).checked)"> Titre et sous-titre en haut</label>
-          <label class="check"><input type="checkbox" :checked="show.legende" @change="setShow('legende', ($event.target as HTMLInputElement).checked)"> Légende</label>
-          <label class="check"><input type="checkbox" :checked="show.dates" @change="setShow('dates', ($event.target as HTMLInputElement).checked)"> Dates sous les jalons</label>
-          <label class="check"><input type="checkbox" :checked="show.aujourdhui" @change="setShow('aujourdhui', ($event.target as HTMLInputElement).checked)"> Repère « aujourd'hui »</label>
+          <label class="check"><input type="checkbox" name="affichage.titre" :checked="show.titre" @change="setShow('titre', ($event.target as HTMLInputElement).checked)"> Titre et sous-titre en haut</label>
+          <label class="check"><input type="checkbox" name="affichage.legende" :checked="show.legende" @change="setShow('legende', ($event.target as HTMLInputElement).checked)"> Légende</label>
+          <label class="check"><input type="checkbox" name="affichage.dates" :checked="show.dates" @change="setShow('dates', ($event.target as HTMLInputElement).checked)"> Dates sous les jalons</label>
+          <label class="check"><input type="checkbox" name="affichage.aujourdhui" :checked="show.aujourdhui" @change="setShow('aujourdhui', ($event.target as HTMLInputElement).checked)"> Repère « aujourd'hui »</label>
           <!-- Seulement sur l'échelle au jour : au mois, un week-end n'a pas de colonne. -->
-          <label v-if="dayScale(tl.period())" class="check"><input type="checkbox" :checked="show.weekends" @change="setShow('weekends', ($event.target as HTMLInputElement).checked)"> Week-ends</label>
+          <label v-if="dayScale(tl.period())" class="check"><input type="checkbox" name="affichage.weekends" :checked="show.weekends" @change="setShow('weekends', ($event.target as HTMLInputElement).checked)"> Week-ends</label>
         </fieldset>
 
         <fieldset class="field gap-2">
@@ -266,7 +278,7 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
               <svg viewBox="-12 -12 24 24" class="size-5" aria-hidden="true" v-html="icon(k)" />
             </button>
             <span class="text-xs leading-tight font-normal text-muted">{{ TYPE_LABELS[k] }}</span>
-            <input :value="doc.libelles?.[k] ?? ''" placeholder="Renommer…" :aria-label="`Libellé pour ${TYPE_LABELS[k]}`" @focus="tl.beginTyping" @input="setLabel(k, value($event))">
+            <input :name="`libelle.${k}`" :value="doc.libelles?.[k] ?? ''" placeholder="Renommer…" :aria-label="`Libellé pour ${TYPE_LABELS[k]}`" @focus="tl.beginTyping" @input="setLabel(k, value($event))">
 
             <div :id="`marque-${k}`" popover class="menu w-[272px] p-3" @beforetoggle="place($event, 'left')">
               <p class="text-[13px] font-semibold text-ink">{{ typeLabel(doc, k) }}</p>
@@ -274,7 +286,7 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
                 <legend class="mb-1.5 text-xs font-medium text-muted">Forme</legend>
                 <div class="flex gap-1">
                   <label v-for="f in FORMES" :key="f" class="cursor-pointer" :title="FORME_LABELS[f]">
-                    <input type="radio" :name="`forme-${k}`" class="peer sr-only" :checked="looks[k].forme === f" @change="setMarque(k, { forme: f })">
+                    <input type="radio" :name="`forme-${k}`" class="peer sr-only" :value="f" :checked="looks[k].forme === f" @change="setMarque(k, { forme: f })">
                     <!-- eslint-disable-next-line vue/no-v-html : balisage produit par prim, sans texte -->
                     <svg viewBox="-12 -12 24 24" class="block size-9 rounded-lg border border-line p-1.5 hover:border-line-strong peer-checked:border-accent peer-checked:ring-2 peer-checked:ring-accent/30 peer-focus-visible:ring-2 peer-focus-visible:ring-accent" aria-hidden="true" v-html="icon(k, f)" />
                     <span class="sr-only">{{ FORME_LABELS[f] }}</span>
@@ -285,13 +297,13 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
                 <legend class="mb-1.5 text-xs font-medium text-muted">Couleur</legend>
                 <div class="flex flex-wrap gap-1">
                   <label class="swatch" title="Couleur du style">
-                    <input type="radio" :name="`couleur-${k}`" class="sr-only" :checked="!doc.marques?.[k]?.couleur" @change="setMarque(k, { couleur: undefined })">
+                    <input type="radio" :name="`couleur-${k}`" class="sr-only" value="style" :checked="!doc.marques?.[k]?.couleur" @change="setMarque(k, { couleur: undefined })">
                     <span :style="{ background: palette.marks[k].fill }" />
                     <span class="sr-only">Couleur du style</span>
                   </label>
                   <span class="mx-0.5 w-px self-stretch bg-line" aria-hidden="true" />
                   <label v-for="c in COULEURS" :key="c" class="swatch" :title="COULEUR_LABELS[c]">
-                    <input type="radio" :name="`couleur-${k}`" class="sr-only" :checked="doc.marques?.[k]?.couleur === c" @change="setMarque(k, { couleur: c })">
+                    <input type="radio" :name="`couleur-${k}`" class="sr-only" :value="c" :checked="doc.marques?.[k]?.couleur === c" @change="setMarque(k, { couleur: c })">
                     <span :style="{ background: palette.phases[c] }" />
                     <span class="sr-only">{{ COULEUR_LABELS[c] }}</span>
                   </label>
@@ -306,15 +318,15 @@ function icon(k: TypeJalon, forme: Forme = looks.value[k].forme) {
         <fieldset class="field">
           <legend class="mb-1.5">Période</legend>
           <label class="check">
-            <input type="checkbox" :checked="!doc.periode" @change="setAuto(($event.target as HTMLInputElement).checked)">
+            <input type="checkbox" name="periode_auto" :checked="!doc.periode" @change="setAuto(($event.target as HTMLInputElement).checked)">
             Automatique
           </label>
           <div class="mt-2 grid gap-3">
             <label class="field">Du
-              <input type="date" :value="shownPeriod.debut" :disabled="!doc.periode" :max="range?.min" @change="setPeriod('debut', value($event))">
+              <input type="date" name="periode_debut" :value="shownPeriod.debut" :disabled="!doc.periode" :max="range?.min" @change="setPeriod('debut', value($event))">
             </label>
             <label class="field">Au
-              <input type="date" :value="shownPeriod.fin" :disabled="!doc.periode" :min="range?.max" @change="setPeriod('fin', value($event))">
+              <input type="date" name="periode_fin" :value="shownPeriod.fin" :disabled="!doc.periode" :min="range?.max" @change="setPeriod('fin', value($event))">
             </label>
           </div>
           <p v-if="range" class="hint mt-1.5">Elle contient toutes les dates, du {{ ddmmyyyy(range.min) }} au {{ ddmmyyyy(range.max) }}. Jusqu'à deux mois, l'axe montre chaque jour ; au-delà, chaque mois entier.</p>

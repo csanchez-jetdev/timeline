@@ -2,6 +2,7 @@
 import { ChevronRight } from '@lucide/vue'
 import { EXEMPLES } from '~/utils/exemples'
 import { STYLE_DEFS } from '~/utils/styles'
+import { track } from '~/utils/track'
 
 const route = useRoute()
 const exemple = EXEMPLES.find(e => e.slug === route.params.slug)
@@ -17,6 +18,7 @@ const insecable = (s: string) => s.replace(/ (?=[:;!?»])|(?<=«) /g, ' ')
 const tl = useTimeline()
 function open() {
   tl.openExample(e.timeline)
+  track('exemple_ouvert', { exemple: e.slug })
   navigateTo('/editeur')
 }
 </script>
