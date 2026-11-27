@@ -2,14 +2,17 @@
 import { SLIDE_IN, SLIDE_SUBTITLE, SLIDE_TITLE, slideFrame } from '~/utils/export'
 import { layout, slideReadability } from '~/utils/layout'
 import { svgInner } from '~/utils/svg'
+import type { Timeline } from '~/utils/timeline'
 
 /*
  * La slide telle que l'export PowerPoint la pose : même mise en page à 1 600 px,
  * même zone sous le titre, mêmes tailles. Les positions sont en pourcentage de la
  * slide et les polices en cqw (largeur du conteneur) : tout suit sa taille.
+ * Celle de `timeline` si elle est donnée, sinon celle de l'éditeur.
  */
+const props = defineProps<{ timeline?: Timeline }>()
 const tl = useTimeline()
-const { doc } = tl
+const doc = computed(() => props.timeline ?? tl.doc.value)
 const l = computed(() => {
   void tl.fontsTick.value
   return layout({ ...doc.value, affichage: { ...doc.value.affichage, titre: false } }, { measure: tl.measure, today: tl.today })
